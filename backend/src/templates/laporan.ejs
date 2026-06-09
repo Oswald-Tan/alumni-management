@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Laporan Rekapitulasi Data Alumni</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: #333333;
+      margin: 0;
+      padding: 0;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    .header-container {
+      text-align: center;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .header-title-main {
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      margin: 0 0 3px 0;
+      color: #111111;
+    }
+    .header-subtitle {
+      font-size: 16px;
+      font-weight: 800;
+      margin: 0 0 5px 0;
+      color: #1e293b;
+    }
+    .header-address {
+      font-size: 10px;
+      color: #555555;
+      margin: 0;
+    }
+    .divider-double {
+      border-top: 2px solid #111111;
+      border-bottom: 0.5px solid #111111;
+      height: 3px;
+      margin: 10px 0 20px 0;
+    }
+    .report-title {
+      text-align: center;
+      font-size: 13px;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-bottom: 15px;
+      color: #1e293b;
+      letter-spacing: 0.5px;
+    }
+    .meta-table {
+      width: 100%;
+      margin-bottom: 15px;
+      font-size: 10px;
+    }
+    .meta-table td {
+      padding: 2px 0;
+      vertical-align: top;
+    }
+    .meta-label {
+      width: 120px;
+      color: #666666;
+      font-weight: 600;
+    }
+    .meta-value {
+      color: #111111;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+      margin-bottom: 20px;
+      border-spacing: 10px 0;
+    }
+    .stat-card {
+      display: table-cell;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .stat-val {
+      font-size: 18px;
+      font-weight: 800;
+      color: #2563eb;
+      margin-bottom: 2px;
+    }
+    .stat-lbl {
+      font-size: 9px;
+      color: #64748b;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    
+    /* Main Table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+    }
+    .data-table th {
+      background-color: #2563eb;
+      color: #ffffff;
+      font-weight: 700;
+      text-align: left;
+      padding: 7px 8px;
+      border: 1px solid #2563eb;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+    .data-table td {
+      padding: 6px 8px;
+      border: 1px solid #e2e8f0;
+      vertical-align: middle;
+    }
+    .data-table tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    .text-center {
+      text-align: center;
+    }
+    .font-mono {
+      font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 9999px;
+      font-size: 9px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .badge-blue { background-color: #dbeafe; color: #1e40af; }
+    .badge-slate { background-color: #f1f5f9; color: #334155; }
+    .badge-purple { background-color: #f3e8ff; color: #6b21a8; }
+    .badge-green { background-color: #dcfce7; color: #166534; }
+    
+    /* Signature Block */
+    .signature-container {
+      width: 100%;
+      margin-top: 30px;
+      page-break-inside: avoid;
+    }
+    .signature-table {
+      width: 100%;
+      border: none;
+    }
+    .signature-table td {
+      border: none;
+      width: 50%;
+      padding: 0;
+    }
+    .sig-right {
+      text-align: right;
+      padding-right: 40px;
+    }
+    .sig-date {
+      font-size: 10px;
+      color: #555555;
+      margin-bottom: 50px;
+    }
+    .sig-name {
+      font-weight: bold;
+      text-decoration: underline;
+      color: #111111;
+      font-size: 11px;
+    }
+    .sig-nip {
+      color: #555555;
+      font-size: 10px;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Kop Surat Resmi -->
+  <div class="header-container">
+    <p class="header-title-main">KEMENTERIAN PENDIDIKAN TINGGI, SAINS, DAN TEKNOLOGI</p>
+    <p class="header-subtitle">POLITEKNIK NEGERI MANADO</p>
+    <p class="header-address">Jl. Kampus Politeknik Negeri Manado, Buha, Kec. Mapanget, Kota Manado, Sulawesi Utara 95249</p>
+    <div class="divider-double"></div>
+  </div>
+
+  <!-- Judul Laporan -->
+  <div class="report-title">LAPORAN REKAPITULASI DATA ALUMNI</div>
+
+  <!-- Meta Filter Informasi -->
+  <table class="meta-table">
+    <tr>
+      <td class="meta-label">Program Studi:</td>
+      <td class="meta-value"><%= filterInfo.prodiName %></td>
+      <td class="meta-label" style="text-align: right; padding-right: 15px;">Tanggal Unduh:</td>
+      <td class="meta-value" style="width: 100px;"><%= filterInfo.downloadDate %></td>
+    </tr>
+    <tr>
+      <td class="meta-label">Tahun Kelulusan:</td>
+      <td class="meta-value"><%= filterInfo.year %></td>
+      <td class="meta-label" style="text-align: right; padding-right: 15px;">Status Ijazah:</td>
+      <td class="meta-value"><%= filterInfo.statusIjazah %></td>
+    </tr>
+  </table>
+
+  <!-- Stats Grid -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-val"><%= stats.total %></div>
+      <div class="stat-lbl">Total Alumni Terfilter</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color: #166534;"><%= stats.sudahAmbil %></div>
+      <div class="stat-lbl">Ijazah Diambil</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color: #ea580c;"><%= stats.belumAmbil %></div>
+      <div class="stat-lbl">Belum Diambil</div>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="text-center" style="width: 5%;">No</th>
+        <th style="width: 20%;">Nama Lengkap</th>
+        <th class="text-center" style="width: 12%;">NIM</th>
+        <th style="width: 23%;">Program Studi</th>
+        <th class="text-center" style="width: 10%;">Tgl Lulus</th>
+        <th class="text-center" style="width: 12%;">No. Ijazah</th>
+        <th class="text-center" style="width: 10%;">Tgl Ambil</th>
+        <th class="text-center" style="width: 8%;">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (alumni.length === 0) { %>
+        <tr>
+          <td colspan="8" class="text-center" style="color: #888888; padding: 20px;">Tidak ada data alumni yang cocok dengan filter yang dipilih.</td>
+        </tr>
+      <% } else { %>
+        <% alumni.forEach(function(a, idx) { %>
+          <tr>
+            <td class="text-center" style="color: #666666;"><%= idx + 1 %></td>
+            <td style="font-weight: 600;"><%= a.nama %></td>
+            <td class="text-center font-mono"><%= a.nim %></td>
+            <td><%= a.programStudi ? a.programStudi.namaProdi : '-' %></td>
+            <td class="text-center">
+              <%= a.tanggalKelulusan ? new Date(a.tanggalKelulusan).toLocaleDateString('id-ID', {day: '2-digit', month: '2-digit', year: 'numeric'}) : '-' %>
+            </td>
+            <td class="text-center font-mono"><%= a.nomorIjazah || '-' %></td>
+            <td class="text-center">
+              <%= a.tanggalPengambilanIjazah ? new Date(a.tanggalPengambilanIjazah).toLocaleDateString('id-ID', {day: '2-digit', month: '2-digit', year: 'numeric'}) : '-' %>
+            </td>
+            <td class="text-center">
+              <% if (a.statusAlumni === 'IJAZAH_DIAMBIL') { %>
+                <span class="badge badge-green">Diambil</span>
+              <% } else if (a.statusAlumni === 'IJAZAH_TERBIT') { %>
+                <span class="badge badge-purple">Terbit</span>
+              <% } else if (a.statusAlumni === 'LULUS') { %>
+                <span class="badge badge-slate">Lulus</span>
+              <% } else { %>
+                <span class="badge badge-blue">Wisuda</span>
+              <% } %>
+            </td>
+          </tr>
+        <% }); %>
+      <% } %>
+    </tbody>
+  </table>
+
+  <!-- Tanda Tangan -->
+  <div class="signature-container">
+    <table class="signature-table">
+      <tr>
+        <td></td>
+        <td class="sig-right">
+          <div class="sig-date">Manado, <%= filterInfo.downloadDate %></div>
+          <div style="margin-bottom: 60px; font-size: 10px; color: #555555;">Kepala Bagian Administrasi Akademik,</div>
+          <div class="sig-name">Ir. Oswald Pongayow, M.T.</div>
+          <div class="sig-nip">NIP. 19741212 200003 1 002</div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+</body>
+</html>

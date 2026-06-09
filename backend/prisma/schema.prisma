@@ -1,0 +1,58 @@
+// Prisma schema - Pengelolaan Data Alumni
+// Politeknik Negeri Manado
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model ProgramStudi {
+  id        Int      @id @default(autoincrement())
+  namaProdi String   @map("nama_prodi")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  alumni Alumni[]
+
+  @@map("program_studi")
+}
+
+model Alumni {
+  id                       Int       @id @default(autoincrement())
+  nama                     String
+  nim                      String    @unique
+  programStudiId           Int       @map("program_studi_id")
+  tanggalWisuda            DateTime? @map("tanggal_wisuda")
+  tanggalKelulusan         DateTime? @map("tanggal_kelulusan")
+  nomorIjazah              String?   @map("nomor_ijazah")
+  tanggalPengambilanIjazah DateTime? @map("tanggal_pengambilan_ijazah")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
+
+  programStudi ProgramStudi @relation(fields: [programStudiId], references: [id])
+
+  @@map("alumni")
+}
+
+model Session {
+  session_id String  @id @db.VarChar(128)
+  expires    Int     @db.UnsignedInt
+  data       String? @db.MediumText
+
+  @@map("sessions")
+}
