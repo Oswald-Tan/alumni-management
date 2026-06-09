@@ -151,11 +151,21 @@ Struktur database dirancang seminimalis dan seefisien mungkin untuk menghindari 
                                         └────────────────────────┘
 ```
 
+### 🔑 Penjelasan Istilah Database (PK, UK, FK):
+Untuk mempermudah penjelasan ke dosen, berikut adalah arti dari singkatan pada kolom tabel di atas:
+* **PK (Primary Key - Kunci Utama):** Kolom pengenal unik untuk setiap baris data di tabel. Nilainya tidak boleh sama (duplikat) dan tidak boleh kosong (*NULL*). Contoh: kolom `id` pada tabel `users` dan `alumni`.
+* **UK (Unique Key - Kunci Unik):** Kolom yang nilainya wajib unik di seluruh tabel tetapi bukan pengenal utama. Contoh: `email` pada tabel `users` dan `nim` pada tabel `alumni` (agar tidak ada admin dengan email ganda atau alumni dengan NIM ganda).
+* **FK (Foreign Key - Kunci Tamu/Penghubung):** Kolom penghubung antar tabel yang menyimpan nilai dari kolom Primary Key (PK) tabel lain. Contoh: kolom `program_studi_id` di tabel `alumni` adalah FK yang merujuk ke kolom `id` (PK) di tabel `program_studi`.
+
 ### Penjelasan Tabel:
 1. **`users`:** Menyimpan informasi kredensial akun pengguna (Admin Akademik) untuk keperluan masuk ke dalam dashboard admin secara aman.
 2. **`program_studi`:** Menyimpan daftar program studi yang tersedia di Politeknik Negeri Manado.
 3. **`alumni`:** Menyimpan biodata lengkap alumni, tanggal penting kelulusan akademik, nomor ijazah, dan tanggal serah terima pengambilan ijazah.
 4. **`sessions`:** Menyimpan cookie token sesi pengguna secara persisten di database MySQL, memastikan sesi login pengguna tetap aman.
 
-### Penjelasan Relasi:
-* **`program_studi` ke `alumni` (One-to-Many):** Satu Program Studi dapat memiliki banyak Alumni terdaftar (Relasi 1 ke Banyak). Di sisi lain, setiap satu orang Alumni hanya dapat terdaftar pada satu Program Studi saja. Relasi ini dijembatani oleh kolom `program_studi_id` di tabel alumni yang merujuk pada `id` di tabel program studi.
+### Penjelasan Relasi & Istilah 1 to N:
+* **Relasi 1 to N (One-to-Many / Satu ke Banyak):**
+  Adalah hubungan antara tabel **`program_studi`** (sisi **1**) dan **`alumni`** (sisi **N**).
+  * **Artinya:** **1** Program Studi dapat memiliki **N** (Banyak) alumni terdaftar (misalnya, ada 100 alumni yang mengambil prodi D4 Teknik Informatika). Sebaliknya, **1** orang alumni hanya dapat terdaftar di **1** Program Studi saja.
+  * Relasi ini terbentuk dengan meletakkan `id` dari tabel `program_studi` ke dalam kolom `program_studi_id` di tabel `alumni` sebagai Foreign Key (FK).
+
