@@ -1,8 +1,15 @@
 import { useEffect, useState } from "react";
-import { FileDown, Printer, Users, BookOpen, Award, CheckCircle } from "lucide-react";
+import {
+  FileDown,
+  Printer,
+  Users,
+  BookOpen,
+  Award,
+  CheckCircle,
+} from "lucide-react";
 import { getAlumni } from "../../services/alumniService";
 import { getDashboard } from "../../services/dashboardService";
-import { getProdi } from "../../services/prodiService";
+import { getJurusan } from "../../services/jurusanService";
 import { API_URL } from "../../config";
 import { toast } from "react-toastify";
 
@@ -15,22 +22,26 @@ const statusLabel = {
 
 export default function LaporanPage() {
   const [alumni, setAlumni] = useState([]);
-  const [prodiList, setProdiList] = useState([]);
+  const [jurusanList, setJurusanList] = useState([]);
   const [dashboard, setDashboard] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState({ prodiId: "", year: "", statusIjazah: "" });
+  const [filter, setFilter] = useState({
+    jurusanId: "",
+    year: "",
+    statusIjazah: "",
+  });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [alumniRes, dashRes, prodiRes] = await Promise.all([
+        const [alumniRes, dashRes, jurusanRes] = await Promise.all([
           getAlumni({ limit: 1000 }),
           getDashboard(),
-          getProdi(),
+          getJurusan(),
         ]);
         setAlumni(alumniRes.data.data);
         setDashboard(dashRes.data.data);
-        setProdiList(prodiRes.data.data);
+        setJurusanList(jurusanRes.data.data);
       } catch {
         toast.error("Gagal memuat data laporan");
       } finally {
@@ -42,7 +53,7 @@ export default function LaporanPage() {
 
   const handlePrint = () => {
     const query = new URLSearchParams({
-      prodiId: filter.prodiId || "",
+      jurusanId: filter.jurusanId || "",
       year: filter.year || "",
       statusIjazah: filter.statusIjazah || "",
     }).toString();
@@ -51,7 +62,7 @@ export default function LaporanPage() {
 
   const handleExportExcel = () => {
     const query = new URLSearchParams({
-      prodiId: filter.prodiId || "",
+      jurusanId: filter.jurusanId || "",
       year: filter.year || "",
       statusIjazah: filter.statusIjazah || "",
     }).toString();
@@ -62,15 +73,22 @@ export default function LaporanPage() {
   const uniqueYears = Array.from(
     new Set(
       alumni
-        .map((a) => (a.tanggalKelulusan ? new Date(a.tanggalKelulusan).getFullYear() : null))
-        .filter(Boolean)
-    )
+        .map((a) =>
+          a.tanggalKelulusan
+            ? new Date(a.tanggalKelulusan).getFullYear()
+            : null,
+        )
+        .filter(Boolean),
+    ),
   ).sort((a, b) => b - a);
 
   const filtered = alumni.filter((a) => {
-    if (filter.prodiId && a.programStudiId !== parseInt(filter.prodiId)) return false;
+    if (filter.jurusanId && a.jurusanId !== parseInt(filter.jurusanId))
+      return false;
     if (filter.year) {
-      const y = a.tanggalKelulusan ? new Date(a.tanggalKelulusan).getFullYear() : null;
+      const y = a.tanggalKelulusan
+        ? new Date(a.tanggalKelulusan).getFullYear()
+        : null;
       if (y !== parseInt(filter.year)) return false;
     }
     if (filter.statusIjazah) {
@@ -86,10 +104,15 @@ export default function LaporanPage() {
       <div className="page-header print:hidden">
         <div>
           <h1 className="page-title">Laporan Alumni</h1>
-          <p className="page-subtitle">Rekap dan ekspor data alumni untuk administrasi akademik</p>
+          <p className="page-subtitle">
+            Rekap dan ekspor data alumni untuk administrasi akademik
+          </p>
         </div>
         <div className="flex gap-2">
-          <button onClick={handleExportExcel} className="btn-secondary py-2.5 px-4 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-none cursor-pointer">
+          <button
+            onClick={handleExportExcel}
+            className="btn-secondary py-2.5 px-4 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-none cursor-pointer"
+          >
             <FileDown size={16} />
             Ekspor Excel
           </button>
@@ -118,7 +141,7 @@ export default function LaporanPage() {
             </div>
             <div>
               <p className="text-2xl font-bold">{dashboard.totalProdi}</p>
-              <p className="text-sm text-slate-500">Program Studi</p>
+              <p className="text-sm text-slate-500">Jurusan & Prodi</p>
             </div>
           </div>
           <div className="stat-card">
@@ -154,21 +177,27 @@ export default function LaporanPage() {
             >
               <option value="">Semua Tahun</option>
               {uniqueYears.map((y) => (
-                <option key={y} value={y}>{y}</option>
+                <option key={y} value={y}>
+                  {y}
+                </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="form-label">Program Studi</label>
+            <label className="form-label">Jurusan / Program Studi</label>
             <select
-              value={filter.prodiId}
-              onChange={(e) => setFilter({ ...filter, prodiId: e.target.value })}
-              className="form-select w-56"
+              value={filter.jurusanId}
+              onChange={(e) =>
+                setFilter({ ...filter, jurusanId: e.target.value })
+              }
+              className="form-select w-64"
             >
-              <option value="">Semua Program Studi</option>
-              {prodiList.map((p) => (
-                <option key={p.id} value={p.id}>{p.namaProdi}</option>
+              <option value="">Semua Jurusan / Prodi</option>
+              {jurusanList.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.namaJurusan} / {p.namaProdi}
+                </option>
               ))}
             </select>
           </div>
@@ -177,7 +206,9 @@ export default function LaporanPage() {
             <label className="form-label">Pengambilan Ijazah</label>
             <select
               value={filter.statusIjazah}
-              onChange={(e) => setFilter({ ...filter, statusIjazah: e.target.value })}
+              onChange={(e) =>
+                setFilter({ ...filter, statusIjazah: e.target.value })
+              }
               className="form-select w-48"
             >
               <option value="">Semua Status</option>
@@ -187,7 +218,9 @@ export default function LaporanPage() {
           </div>
 
           <button
-            onClick={() => setFilter({ prodiId: "", year: "", statusIjazah: "" })}
+            onClick={() =>
+              setFilter({ jurusanId: "", year: "", statusIjazah: "" })
+            }
             className="btn-secondary h-[42px]"
           >
             Reset Filter
@@ -198,7 +231,9 @@ export default function LaporanPage() {
       {/* Table */}
       <div className="card print:shadow-none print:border-none print:p-0">
         <div className="hidden print:block text-center mb-6">
-          <h2 className="text-xl font-bold text-slate-800">Laporan Rekapitulasi Data Alumni</h2>
+          <h2 className="text-xl font-bold text-slate-800">
+            Laporan Rekapitulasi Data Alumni
+          </h2>
           <p className="text-sm text-slate-500">Politeknik Negeri Manado</p>
           <hr className="my-4 border-slate-300" />
         </div>
@@ -213,7 +248,7 @@ export default function LaporanPage() {
                 <th>No</th>
                 <th>Nama</th>
                 <th>NIM</th>
-                <th>Program Studi</th>
+                <th>Jurusan / Program Studi</th>
                 <th>Tanggal Kelulusan</th>
                 <th>Nomor Ijazah</th>
                 <th>Tanggal Pengambilan</th>
@@ -222,25 +257,51 @@ export default function LaporanPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={8} className="text-center py-10 text-slate-400">Memuat...</td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-10 text-slate-400">Tidak ada data alumni yang cocok</td></tr>
-              ) : filtered.map((a, idx) => (
-                <tr key={a.id}>
-                  <td className="text-slate-400">{idx + 1}</td>
-                  <td className="font-semibold">{a.nama}</td>
-                  <td className="font-mono text-sm">{a.nim}</td>
-                  <td className="text-slate-500 text-sm">{a.programStudi?.namaProdi}</td>
-                  <td className="text-slate-500 text-sm">
-                    {a.tanggalKelulusan ? new Date(a.tanggalKelulusan).toLocaleDateString("id-ID") : "-"}
+                <tr>
+                  <td colSpan={8} className="text-center py-10 text-slate-400">
+                    Memuat...
                   </td>
-                  <td className="font-mono text-sm">{a.nomorIjazah || "-"}</td>
-                  <td className="text-slate-500 text-sm">
-                    {a.tanggalPengambilanIjazah ? new Date(a.tanggalPengambilanIjazah).toLocaleDateString("id-ID") : "-"}
-                  </td>
-                  <td className="text-sm">{statusLabel[a.statusAlumni]}</td>
                 </tr>
-              ))}
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="text-center py-10 text-slate-400">
+                    Tidak ada data alumni yang cocok
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((a, idx) => (
+                  <tr key={a.id}>
+                    <td className="text-slate-400">{idx + 1}</td>
+                    <td className="font-semibold">{a.nama}</td>
+                    <td className="font-mono text-sm">{a.nim}</td>
+                    <td className="text-slate-500 text-sm">
+                      {a.jurusan ? `${a.jurusan.namaJurusan} / ${a.jurusan.namaProdi}` : "-"}
+                    </td>
+                    <td className="text-slate-500 text-sm">
+                      {a.tanggalKelulusan
+                        ? new Date(a.tanggalKelulusan).toLocaleDateString(
+                            "id-ID",
+                          )
+                        : "-"}
+                    </td>
+                    <td className="font-mono text-sm">
+                      {a.nomorIjazah || "-"}
+                    </td>
+                    <td className="text-slate-500 text-sm">
+                      {a.tanggalPengambilanIjazah
+                        ? new Date(
+                            a.tanggalPengambilanIjazah,
+                          ).toLocaleDateString("id-ID")
+                        : "-"}
+                    </td>
+                    <td className="text-sm">
+                      <span className="font-medium text-slate-800">
+                        {statusLabel[a.statusAlumni] || a.statusAlumni}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

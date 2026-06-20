@@ -2,17 +2,17 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Save } from "lucide-react";
 import { createAlumni } from "../../services/alumniService";
-import { getProdi } from "../../services/prodiService";
+import { getJurusan } from "../../services/jurusanService";
 import { toast } from "react-toastify";
 
 export default function AlumniCreatePage() {
   const navigate = useNavigate();
-  const [prodiList, setProdiList] = useState([]);
+  const [jurusanList, setJurusanList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [form, setForm] = useState({
     nim: "",
     nama: "",
-    programStudiId: "",
+    jurusanId: "",
     tanggalKelulusan: "",
     tanggalWisuda: "",
     nomorIjazah: "",
@@ -20,7 +20,7 @@ export default function AlumniCreatePage() {
   });
 
   useEffect(() => {
-    getProdi().then((res) => setProdiList(res.data.data));
+    getJurusan().then((res) => setJurusanList(res.data.data));
   }, []);
 
   const handleChange = (e) => {
@@ -88,19 +88,19 @@ export default function AlumniCreatePage() {
 
           <div>
             <label className="form-label">
-              Program Studi <span className="text-red-500">*</span>
+              Jurusan / Program Studi <span className="text-red-500">*</span>
             </label>
             <select
-              name="programStudiId"
-              value={form.programStudiId}
+              name="jurusanId"
+              value={form.jurusanId}
               onChange={handleChange}
               className="form-select"
               required
             >
-              <option value="">-- Pilih Program Studi --</option>
-              {prodiList.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.namaProdi}
+              <option value="">-- Pilih Jurusan / Program Studi --</option>
+              {jurusanList.map((j) => (
+                <option key={j.id} value={j.id}>
+                  {j.namaJurusan} / {j.namaProdi} ({j.jenjang} - {j.akreditasi})
                 </option>
               ))}
             </select>

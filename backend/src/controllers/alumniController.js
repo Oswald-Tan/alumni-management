@@ -3,6 +3,7 @@ const path = require("path");
 const ejs = require("ejs");
 const puppeteer = require("puppeteer-core");
 const ExcelJS = require("exceljs");
+const bcrypt = require("bcryptjs");
 const prisma = require("../config/prisma");
 
 const statusLabel = {
@@ -37,7 +38,7 @@ const getChromePath = () => {
 // GET /api/v1/alumni
 const getAll = async (req, res) => {
   try {
-    const { search, prodiId, status, page = 1, limit = 10 } = req.query;
+    const { search, jurusanId, status, page = 1, limit = 10 } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const where = {};
@@ -48,7 +49,7 @@ const getAll = async (req, res) => {
         { nomorIjazah: { contains: search } },
       ];
     }
-    if (prodiId) where.programStudiId = parseInt(prodiId);
+    if (jurusanId) where.jurusanId = parseInt(jurusanId);
 
     // Filter by derived status
     if (status) {
@@ -75,7 +76,7 @@ const getAll = async (req, res) => {
         skip,
         take: parseInt(limit),
         include: {
-          programStudi: true,
+          jurusan: true,
         },
         orderBy: { createdAt: "desc" },
       }),
@@ -111,7 +112,7 @@ const getById = async (req, res) => {
     const alumni = await prisma.alumni.findUnique({
       where: { id: parseInt(id) },
       include: {
-        programStudi: true,
+        jurusan: true,
       },
     });
 
@@ -135,10 +136,10 @@ const getById = async (req, res) => {
 // POST /api/v1/alumni
 const create = async (req, res) => {
   try {
-    const { nim, nama, programStudiId, tanggalWisuda, tanggalKelulusan, nomorIjazah, tanggalPengambilanIjazah } = req.body;
+    const { nim, nama, jurusanId, tanggalWisuda, tanggalKelulusan, nomorIjazah, tanggalPengambilanIjazah, password } = req.body;
 
-    if (!nim || !nama || !programStudiId) {
-      return res.status(400).json({ success: false, message: "NIM, nama, dan program studi wajib diisi" });
+    if (!nim || !nama || !jurusanId) {
+      return res.status(400).json({ success: false, message: "NIM, nama, dan Jurusan/Program Studi wajib diisi" });
     }
 
     // Cek duplikat NIM
@@ -147,17 +148,22 @@ const create = async (req, res) => {
       return res.status(409).json({ success: false, message: "NIM sudah digunakan" });
     }
 
+    // Hash password (default ke NIM jika tidak diisi)
+    const pwdToHash = password || nim;
+    const hashedPassword = await bcrypt.hash(pwdToHash, 10);
+
     const alumni = await prisma.alumni.create({
       data: {
         nim,
         nama,
-        programStudiId: parseInt(programStudiId),
+        password: hashedPassword,
+        jurusanId: parseInt(jurusanId),
         tanggalWisuda: tanggalWisuda ? new Date(tanggalWisuda) : null,
         tanggalKelulusan: tanggalKelulusan ? new Date(tanggalKelulusan) : null,
         nomorIjazah: nomorIjazah || null,
         tanggalPengambilanIjazah: tanggalPengambilanIjazah ? new Date(tanggalPengambilanIjazah) : null,
       },
-      include: { programStudi: true },
+      include: { jurusan: true },
     });
 
     return res.status(201).json({
@@ -178,33 +184,48 @@ const create = async (req, res) => {
 const update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nim, nama, programStudiId, tanggalWisuda, tanggalKelulusan, nomorIjazah, tanggalPengambilanIjazah } = req.body;
+    const { nim, nama, jurusanId, tanggalWisuda, tanggalKelulusan, nomorIjazah, tanggalPengambilanIjazah, password } = req.body;
 
     const alumni = await prisma.alumni.findUnique({ where: { id: parseInt(id) } });
     if (!alumni) {
       return res.status(404).json({ success: false, message: "Alumni tidak ditemukan" });
     }
 
-    // Cek NIM duplikat (kalau diubah)
-    if (nim && nim !== alumni.nim) {
-      const existing = await prisma.alumni.findUnique({ where: { nim } });
-      if (existing) {
-        return res.status(409).json({ success: false, message: "NIM sudah digunakan alumni lain" });
+    const isAlumni = req.session.role === "ALUMNI";
+    const updateData = {};
+
+    if (isAlumni) {
+      if (password && password.trim() !== "") {
+        updateData.password = await bcrypt.hash(password, 10);
+      } else {
+        return res.status(400).json({ success: false, message: "Tidak ada data yang diubah" });
+      }
+    } else {
+      // Cek NIM duplikat (kalau diubah)
+      if (nim && nim !== alumni.nim) {
+        const existing = await prisma.alumni.findUnique({ where: { nim } });
+        if (existing) {
+          return res.status(409).json({ success: false, message: "NIM sudah digunakan alumni lain" });
+        }
+      }
+
+      updateData.nama = nama;
+      updateData.nim = nim;
+      updateData.jurusanId = jurusanId ? parseInt(jurusanId) : undefined;
+      updateData.tanggalWisuda = tanggalWisuda !== undefined ? (tanggalWisuda ? new Date(tanggalWisuda) : null) : undefined;
+      updateData.tanggalKelulusan = tanggalKelulusan !== undefined ? (tanggalKelulusan ? new Date(tanggalKelulusan) : null) : undefined;
+      updateData.nomorIjazah = nomorIjazah !== undefined ? (nomorIjazah || null) : undefined;
+      updateData.tanggalPengambilanIjazah = tanggalPengambilanIjazah !== undefined ? (tanggalPengambilanIjazah ? new Date(tanggalPengambilanIjazah) : null) : undefined;
+
+      if (password && password.trim() !== "") {
+        updateData.password = await bcrypt.hash(password, 10);
       }
     }
 
     const updated = await prisma.alumni.update({
       where: { id: parseInt(id) },
-      data: {
-        nama,
-        nim,
-        programStudiId: programStudiId ? parseInt(programStudiId) : undefined,
-        tanggalWisuda: tanggalWisuda !== undefined ? (tanggalWisuda ? new Date(tanggalWisuda) : null) : undefined,
-        tanggalKelulusan: tanggalKelulusan !== undefined ? (tanggalKelulusan ? new Date(tanggalKelulusan) : null) : undefined,
-        nomorIjazah: nomorIjazah !== undefined ? (nomorIjazah || null) : undefined,
-        tanggalPengambilanIjazah: tanggalPengambilanIjazah !== undefined ? (tanggalPengambilanIjazah ? new Date(tanggalPengambilanIjazah) : null) : undefined,
-      },
-      include: { programStudi: true },
+      data: updateData,
+      include: { jurusan: true },
     });
 
     return res.status(200).json({
@@ -243,10 +264,10 @@ const remove = async (req, res) => {
 // GET /api/v1/alumni/export/excel
 const exportExcel = async (req, res) => {
   try {
-    const { prodiId, year, statusIjazah } = req.query;
+    const { jurusanId, year, statusIjazah } = req.query;
 
     const where = {};
-    if (prodiId) where.programStudiId = parseInt(prodiId);
+    if (jurusanId) where.jurusanId = parseInt(jurusanId);
     if (year) {
       const startOfYear = new Date(`${year}-01-01T00:00:00.000Z`);
       const endOfYear = new Date(`${year}-12-31T23:59:59.999Z`);
@@ -265,7 +286,7 @@ const exportExcel = async (req, res) => {
 
     const alumni = await prisma.alumni.findMany({
       where,
-      include: { programStudi: true },
+      include: { jurusan: true },
       orderBy: { nama: "asc" },
     });
 
@@ -274,10 +295,10 @@ const exportExcel = async (req, res) => {
       statusAlumni: deriveStatus(a),
     }));
 
-    let prodiName = "Semua Program Studi";
-    if (prodiId) {
-      const p = await prisma.programStudi.findUnique({ where: { id: parseInt(prodiId) } });
-      if (p) prodiName = p.namaProdi;
+    let prodiName = "Semua Jurusan / Prodi";
+    if (jurusanId) {
+      const p = await prisma.jurusan.findUnique({ where: { id: parseInt(jurusanId) } });
+      if (p) prodiName = `${p.namaJurusan} / ${p.namaProdi}`;
     }
 
     const formattedDate = new Date().toLocaleDateString("id-ID", {
@@ -305,7 +326,7 @@ const exportExcel = async (req, res) => {
     worksheet.addRow([]); // Blank row 3
 
     // Metadata
-    worksheet.getCell("A4").value = "Program Studi:";
+    worksheet.getCell("A4").value = "Jurusan / Prodi:";
     worksheet.getCell("A4").font = { bold: true, color: { argb: "FF475569" } };
     worksheet.getCell("B4").value = prodiName;
 
@@ -329,7 +350,7 @@ const exportExcel = async (req, res) => {
       { header: "No", key: "no", width: 6 },
       { header: "Nama Lengkap", key: "nama", width: 30 },
       { header: "NIM", key: "nim", width: 16 },
-      { header: "Program Studi", key: "prodi", width: 35 },
+      { header: "Jurusan / Program Studi", key: "prodi", width: 35 },
       { header: "Tanggal Kelulusan", key: "tglLulus", width: 18 },
       { header: "Tanggal Wisuda", key: "tglWisuda", width: 18 },
       { header: "Nomor Ijazah", key: "nomorIjazah", width: 18 },
@@ -365,12 +386,13 @@ const exportExcel = async (req, res) => {
       const tglWisuda = a.tanggalWisuda ? new Date(a.tanggalWisuda).toLocaleDateString("id-ID") : "-";
       const tglAmbil = a.tanggalPengambilanIjazah ? new Date(a.tanggalPengambilanIjazah).toLocaleDateString("id-ID") : "-";
       const statusText = statusLabel[a.statusAlumni] || a.statusAlumni;
+      const displayProdi = a.jurusan ? `${a.jurusan.namaJurusan} / ${a.jurusan.namaProdi}` : "-";
 
       const row = worksheet.addRow({
         no: idx + 1,
         nama: a.nama,
         nim: a.nim, // write literally as string to prevent loss of leading zeros
-        prodi: a.programStudi?.namaProdi || "-",
+        prodi: displayProdi,
         tglLulus: tglLulus,
         tglWisuda: tglWisuda,
         nomorIjazah: a.nomorIjazah || "-",
@@ -433,10 +455,10 @@ const exportExcel = async (req, res) => {
 // GET /api/v1/alumni/export/pdf
 const exportPdf = async (req, res) => {
   try {
-    const { prodiId, year, statusIjazah } = req.query;
+    const { jurusanId, year, statusIjazah } = req.query;
 
     const where = {};
-    if (prodiId) where.programStudiId = parseInt(prodiId);
+    if (jurusanId) where.jurusanId = parseInt(jurusanId);
     if (year) {
       const startOfYear = new Date(`${year}-01-01T00:00:00.000Z`);
       const endOfYear = new Date(`${year}-12-31T23:59:59.999Z`);
@@ -455,7 +477,7 @@ const exportPdf = async (req, res) => {
 
     const alumni = await prisma.alumni.findMany({
       where,
-      include: { programStudi: true },
+      include: { jurusan: true },
       orderBy: { nama: "asc" },
     });
 
@@ -470,10 +492,10 @@ const exportPdf = async (req, res) => {
       belumAmbil: mappedAlumni.filter((a) => a.statusAlumni !== "IJAZAH_DIAMBIL").length,
     };
 
-    let prodiName = "Semua Program Studi";
-    if (prodiId) {
-      const p = await prisma.programStudi.findUnique({ where: { id: parseInt(prodiId) } });
-      if (p) prodiName = p.namaProdi;
+    let prodiName = "Semua Jurusan / Prodi";
+    if (jurusanId) {
+      const p = await prisma.jurusan.findUnique({ where: { id: parseInt(jurusanId) } });
+      if (p) prodiName = `${p.namaJurusan} / ${p.namaProdi}`;
     }
 
     const filterInfo = {
@@ -535,4 +557,88 @@ const exportPdf = async (req, res) => {
   }
 };
 
-module.exports = { getAll, getById, create, update, remove, exportExcel, exportPdf };
+const updateProfileFoto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const alumni = await prisma.alumni.findUnique({ where: { id: parseInt(id) } });
+
+    if (!alumni) {
+      if (req.file) {
+        try { fs.unlinkSync(req.file.path); } catch (_) {}
+      }
+      return res.status(404).json({ success: false, message: "Alumni tidak ditemukan" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Tidak ada file foto yang diunggah" });
+    }
+
+    // Hapus foto lama
+    if (alumni.foto) {
+      const oldPath = path.join(__dirname, "../../uploads/foto", alumni.foto);
+      if (fs.existsSync(oldPath)) {
+        try { fs.unlinkSync(oldPath); } catch (_) {}
+      }
+    }
+
+    const updated = await prisma.alumni.update({
+      where: { id: parseInt(id) },
+      data: { foto: req.file.filename },
+    });
+
+    if (req.session.role === "ALUMNI" && req.session.userId === alumni.id) {
+      req.session.foto = updated.foto;
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Foto profil alumni berhasil diperbarui",
+      data: updated,
+    });
+  } catch (error) {
+    console.error("Update alumni foto error:", error);
+    if (req.file) {
+      try { fs.unlinkSync(req.file.path); } catch (_) {}
+    }
+    return res.status(500).json({ success: false, message: "Terjadi kesalahan server" });
+  }
+};
+
+const deleteProfileFoto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const alumni = await prisma.alumni.findUnique({ where: { id: parseInt(id) } });
+
+    if (!alumni) {
+      return res.status(404).json({ success: false, message: "Alumni tidak ditemukan" });
+    }
+
+    // Hapus file fisik jika ada
+    if (alumni.foto) {
+      const filePath = path.join(__dirname, "../../uploads/foto", alumni.foto);
+      if (fs.existsSync(filePath)) {
+        try { fs.unlinkSync(filePath); } catch (_) {}
+      }
+    }
+
+    const updated = await prisma.alumni.update({
+      where: { id: parseInt(id) },
+      data: { foto: null },
+    });
+
+    if (req.session.role === "ALUMNI" && req.session.userId === alumni.id) {
+      req.session.foto = null;
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Foto profil alumni berhasil dihapus",
+      data: updated,
+    });
+  } catch (error) {
+    console.error("Delete alumni foto error:", error);
+    return res.status(500).json({ success: false, message: "Terjadi kesalahan server" });
+  }
+};
+
+module.exports = { getAll, getById, create, update, remove, exportExcel, exportPdf, updateProfileFoto, deleteProfileFoto };

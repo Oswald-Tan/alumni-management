@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const { getAll, create, update, remove } = require("../controllers/prodiController");
-const { isAdmin } = require("../middlewares/auth");
+const { getAll, create, update, remove } = require("../controllers/jurusanController");
+const { isAdmin, isAuthenticatedAny } = require("../middlewares/auth");
 
-router.get("/", isAdmin, getAll);
+router.get("/", isAuthenticatedAny, getAll);
 router.post("/", isAdmin, create);
 router.put("/:id", isAdmin, update);
 router.delete("/:id", isAdmin, remove);

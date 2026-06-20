@@ -47,7 +47,7 @@ const uploadBerkas = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 }).single("file");
 
-// Upload foto alumni (max 2MB, hanya gambar)
+// Upload foto alumni (max 3MB, hanya gambar)
 const uploadFoto = multer({
   storage: multer.diskStorage({
     destination: function (req, file, cb) {
@@ -64,14 +64,14 @@ const uploadFoto = multer({
     },
   }),
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Hanya JPEG, JPG, PNG yang diperbolehkan untuk foto."), false);
+      cb(new Error("Hanya JPEG, JPG, PNG, WEBP yang diperbolehkan untuk foto."), false);
     }
   },
-  limits: { fileSize: 2 * 1024 * 1024 },
+  limits: { fileSize: 3 * 1024 * 1024 },
 }).single("foto");
 
 // Error handler multer

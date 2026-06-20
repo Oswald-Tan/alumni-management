@@ -2,39 +2,41 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { ArrowLeft, Save } from "lucide-react";
 import { getAlumniById, updateAlumni } from "../../services/alumniService";
-import { getProdi } from "../../services/prodiService";
+import { getJurusan } from "../../services/jurusanService";
 import { toast } from "react-toastify";
 
 export default function AlumniEditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [prodiList, setProdiList] = useState([]);
+  const [jurusanList, setJurusanList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [form, setForm] = useState({
     nim: "",
     nama: "",
-    programStudiId: "",
+    jurusanId: "",
     tanggalKelulusan: "",
     tanggalWisuda: "",
     nomorIjazah: "",
     tanggalPengambilanIjazah: "",
+    password: "", // Menambahkan kolom ganti password opsional
   });
 
   useEffect(() => {
-    Promise.all([getAlumniById(id), getProdi()])
-      .then(([alumniRes, prodiRes]) => {
+    Promise.all([getAlumniById(id), getJurusan()])
+      .then(([alumniRes, jurusanRes]) => {
         const a = alumniRes.data.data;
         setForm({
           nim: a.nim,
           nama: a.nama,
-          programStudiId: a.programStudiId,
+          jurusanId: a.jurusanId,
           tanggalKelulusan: a.tanggalKelulusan?.split("T")[0] || "",
           tanggalWisuda: a.tanggalWisuda?.split("T")[0] || "",
           nomorIjazah: a.nomorIjazah || "",
           tanggalPengambilanIjazah: a.tanggalPengambilanIjazah?.split("T")[0] || "",
+          password: "",
         });
-        setProdiList(prodiRes.data.data);
+        setJurusanList(jurusanRes.data.data);
       })
       .catch(() => {
         toast.error("Gagal memuat data alumni");
@@ -114,18 +116,19 @@ export default function AlumniEditPage() {
 
           <div>
             <label className="form-label">
-              Program Studi <span className="text-red-500">*</span>
+              Jurusan / Program Studi <span className="text-red-500">*</span>
             </label>
             <select
-              name="programStudiId"
-              value={form.programStudiId}
+              name="jurusanId"
+              value={form.jurusanId}
               onChange={handleChange}
               className="form-select"
               required
             >
-              {prodiList.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.namaProdi}
+              <option value="">-- Pilih Jurusan / Program Studi --</option>
+              {jurusanList.map((j) => (
+                <option key={j.id} value={j.id}>
+                  {j.namaJurusan} / {j.namaProdi} ({j.jenjang} - {j.akreditasi})
                 </option>
               ))}
             </select>
@@ -175,6 +178,18 @@ export default function AlumniEditPage() {
                 className="form-input"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="form-label">Ganti Password (Kosongkan jika tidak ingin diubah)</label>
+            <input
+              type="password"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="Masukkan password baru"
+              className="form-input"
+            />
           </div>
 
           <div className="flex gap-3 pt-2">

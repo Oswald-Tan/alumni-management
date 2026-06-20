@@ -20,7 +20,7 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.email || !form.password) {
-      toast.error("Email dan password wajib diisi");
+      toast.error("Email / NIM dan password wajib diisi");
       return;
     }
 
@@ -30,7 +30,11 @@ export default function LoginPage() {
       const user = res.data.data;
       dispatch(setUser(user));
       toast.success(`Selamat datang, ${user.name}!`);
-      navigate("/admin/dashboard");
+      if (user.role === "ADMIN") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/alumni/dashboard");
+      }
     } catch (err) {
       const msg = err.response?.data?.message || "Login gagal";
       toast.error(msg);
@@ -65,14 +69,14 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Email
+                Email / NIM
               </label>
               <input
-                type="email"
+                type="text"
                 name="email"
                 value={form.email}
                 onChange={handleChange}
-                placeholder="email@polimdo.ac.id"
+                placeholder="Masukkan Email atau NIM"
                 className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
                 required
               />
@@ -127,6 +131,9 @@ export default function LoginPage() {
             <div className="space-y-1 text-xs text-slate-500">
               <p>
                 <span className="text-slate-400">Admin:</span> admin@polimdo.ac.id / admin123
+              </p>
+              <p>
+                <span className="text-slate-400">Alumni:</span> 2020714001 / 2020714001
               </p>
             </div>
           </div>

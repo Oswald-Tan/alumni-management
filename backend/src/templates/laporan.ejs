@@ -194,7 +194,7 @@
   <!-- Meta Filter Informasi -->
   <table class="meta-table">
     <tr>
-      <td class="meta-label">Program Studi:</td>
+      <td class="meta-label">Jurusan / Prodi:</td>
       <td class="meta-value"><%= filterInfo.prodiName %></td>
       <td class="meta-label" style="text-align: right; padding-right: 15px;">Tanggal Unduh:</td>
       <td class="meta-value" style="width: 100px;"><%= filterInfo.downloadDate %></td>
@@ -248,7 +248,7 @@
             <td class="text-center" style="color: #666666;"><%= idx + 1 %></td>
             <td style="font-weight: 600;"><%= a.nama %></td>
             <td class="text-center font-mono"><%= a.nim %></td>
-            <td><%= a.programStudi ? a.programStudi.namaProdi : '-' %></td>
+            <td><%= a.jurusan ? a.jurusan.namaJurusan + ' / ' + a.jurusan.namaProdi : '-' %></td>
             <td class="text-center">
               <%= a.tanggalKelulusan ? new Date(a.tanggalKelulusan).toLocaleDateString('id-ID', {day: '2-digit', month: '2-digit', year: 'numeric'}) : '-' %>
             </td>

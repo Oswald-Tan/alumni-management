@@ -3,12 +3,14 @@ const router = express.Router();
 
 const authRoutes = require("./authRoutes");
 const alumniRoutes = require("./alumniRoutes");
-const prodiRoutes = require("./prodiRoutes");
+const jurusanRoutes = require("./jurusanRoutes");
 const dashboardRoutes = require("./dashboardRoutes");
+const tracerRoutes = require("./tracerRoutes");
 
 router.use("/auth", authRoutes);
 router.use("/alumni", alumniRoutes);
-router.use("/prodi", prodiRoutes);
+router.use("/jurusan", jurusanRoutes);
 router.use("/dashboard", dashboardRoutes);
+router.use("/tracer", tracerRoutes);
 
 module.exports = router;

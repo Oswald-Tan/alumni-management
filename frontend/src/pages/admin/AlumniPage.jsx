@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Plus, Search, Pencil, Trash2, Eye, X } from "lucide-react";
 import { getAlumni, deleteAlumni } from "../../services/alumniService";
 import { toast } from "react-toastify";
+import ConfirmModal from "../../components/ConfirmModal";
 
 const statusLabel = {
   TERDAFTAR_WISUDA: "Terdaftar Wisuda",
@@ -25,6 +26,12 @@ export default function AlumniPage() {
   const [searchInput, setSearchInput] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAlumni, setSelectedAlumni] = useState(null); // Detail modal state
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: null,
+  });
   const limit = 10;
 
   const fetchAlumni = useCallback(async () => {
@@ -50,15 +57,21 @@ export default function AlumniPage() {
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
-  const handleDelete = async (id, nama) => {
-    if (!confirm(`Hapus alumni "${nama}"? Data tidak dapat dikembalikan.`)) return;
-    try {
-      await deleteAlumni(id);
-      toast.success("Alumni berhasil dihapus");
-      fetchAlumni();
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Gagal menghapus");
-    }
+  const handleDelete = (id, nama) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Hapus Alumni",
+      message: `Apakah Anda yakin ingin menghapus alumni "${nama}"? Data tidak dapat dikembalikan.`,
+      onConfirm: async () => {
+        try {
+          await deleteAlumni(id);
+          toast.success("Alumni berhasil dihapus");
+          fetchAlumni();
+        } catch (err) {
+          toast.error(err.response?.data?.message || "Gagal menghapus");
+        }
+      },
+    });
   };
 
   return (
@@ -98,7 +111,7 @@ export default function AlumniPage() {
                 <th>No</th>
                 <th>Nama</th>
                 <th>NIM</th>
-                <th>Program Studi</th>
+                <th>Jurusan / Prodi</th>
                 <th>Kelulusan</th>
                 <th>No Ijazah</th>
                 <th>Pengambilan</th>
@@ -117,7 +130,9 @@ export default function AlumniPage() {
                     <td className="text-slate-400">{(pagination.page - 1) * limit + idx + 1}</td>
                     <td className="font-semibold">{a.nama}</td>
                     <td className="font-mono text-sm">{a.nim}</td>
-                    <td className="text-slate-500 text-sm">{a.programStudi?.namaProdi}</td>
+                    <td className="text-slate-500 text-sm">
+                      {a.jurusan ? `${a.jurusan.namaJurusan} / ${a.jurusan.namaProdi}` : "-"}
+                    </td>
                     <td className="text-slate-500 text-sm">
                       {a.tanggalKelulusan
                         ? new Date(a.tanggalKelulusan).toLocaleDateString("id-ID")
@@ -213,8 +228,10 @@ export default function AlumniPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-slate-400 font-semibold uppercase">Program Studi</p>
-                  <p className="text-sm font-medium text-slate-800">{selectedAlumni.programStudi?.namaProdi || "-"}</p>
+                  <p className="text-xs text-slate-400 font-semibold uppercase">Jurusan / Program Studi</p>
+                  <p className="text-sm font-medium text-slate-800">
+                    {selectedAlumni.jurusan ? `${selectedAlumni.jurusan.namaJurusan} / ${selectedAlumni.jurusan.namaProdi}` : "-"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-400 font-semibold uppercase">Status Arsip</p>
@@ -281,6 +298,16 @@ export default function AlumniPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText="Hapus"
+        roleTheme="red"
+      />
     </div>
   );
 }

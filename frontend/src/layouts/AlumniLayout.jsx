@@ -1,12 +1,10 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
-  BookOpen,
-  BarChart3,
-  LogOut,
+  User,
   GraduationCap,
-  ChevronDown,
-  ChevronRight,
+  ClipboardCheck,
+  LogOut,
   Menu,
   X,
 } from "lucide-react";
@@ -20,39 +18,30 @@ const navItems = [
   {
     label: "Dashboard",
     icon: LayoutDashboard,
-    path: "/admin/dashboard",
+    path: "/alumni/dashboard",
   },
   {
-    label: "Master Data",
-    icon: BookOpen,
-    children: [
-      { label: "Jurusan & Prodi", path: "/admin/jurusan" },
-      { label: "Data Alumni", path: "/admin/alumni" },
-    ],
+    label: "Profil Saya",
+    icon: User,
+    path: "/alumni/profil",
+  },
+  {
+    label: "Status Kelulusan",
+    icon: GraduationCap,
+    path: "/alumni/status",
   },
   {
     label: "Tracer Study",
-    icon: BarChart3,
-    children: [
-      { label: "Periode Tracer", path: "/admin/tracer-periode" },
-      { label: "Pertanyaan Kuisioner", path: "/admin/tracer-pertanyaan" },
-      { label: "Monitoring Hasil", path: "/admin/tracer-hasil" },
-      { label: "Laporan Akreditasi", path: "/admin/tracer-laporan" },
-    ],
-  },
-  {
-    label: "Laporan Ijazah",
-    icon: BarChart3,
-    path: "/admin/laporan",
+    icon: ClipboardCheck,
+    path: "/alumni/tracer",
   },
 ];
 
-export default function AdminLayout({ children }) {
+export default function AlumniLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector(selectUser);
-  const [openMenus, setOpenMenus] = useState({});
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Otomatis tutup sidebar di mobile jika rute berubah
@@ -60,13 +49,7 @@ export default function AdminLayout({ children }) {
     setIsSidebarOpen(false);
   }, [location]);
 
-  const toggleMenu = (label) => {
-    setOpenMenus((prev) => ({ ...prev, [label]: !prev[label] }));
-  };
-
   const isActive = (path) => location.pathname === path;
-  const isParentActive = (children) =>
-    children?.some((c) => location.pathname.startsWith(c.path));
 
   const handleLogout = async () => {
     try {
@@ -88,17 +71,17 @@ export default function AdminLayout({ children }) {
           >
             <Menu size={22} />
           </button>
-          <span className="font-extrabold text-sm tracking-wide">SiAlumni Admin</span>
+          <span className="font-extrabold text-sm tracking-wide">Portal Alumni</span>
         </div>
         {user?.foto ? (
           <img
             src={`http://localhost:5000/uploads/foto/${user.foto}`}
             alt="Avatar"
-            className="w-8 h-8 rounded-full object-cover shadow-md shadow-blue-900/20"
+            className="w-8 h-8 rounded-full object-cover shadow-md shadow-teal-900/20"
           />
         ) : (
-          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md shadow-blue-500/25">
-            {user?.name?.charAt(0) || "A"}
+          <div className="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md shadow-teal-500/25">
+            {user?.name?.charAt(0) || "U"}
           </div>
         )}
       </header>
@@ -116,11 +99,11 @@ export default function AdminLayout({ children }) {
         {/* Logo */}
         <div className="sidebar-logo flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center">
-              <GraduationCap size={20} className="text-white" />
+            <div className="w-9 h-9 bg-teal-600 rounded-xl flex items-center justify-center">
+              <ClipboardCheck size={20} className="text-white" />
             </div>
             <div>
-              <p className="text-white text-sm font-bold leading-tight">SiAlumni</p>
+              <p className="text-white text-sm font-bold leading-tight">Portal Alumni</p>
               <p className="text-slate-400 text-xs">Politeknik Negeri Manado</p>
             </div>
           </div>
@@ -136,44 +119,6 @@ export default function AdminLayout({ children }) {
         <nav className="flex-1 px-2 py-4">
           {navItems.map((item) => {
             const Icon = item.icon;
-
-            if (item.children) {
-              const isOpen = openMenus[item.label] ?? isParentActive(item.children);
-              return (
-                <div key={item.label}>
-                  <div
-                    role="button"
-                    onClick={() => toggleMenu(item.label)}
-                    className={`sidebar-nav-item justify-between ${
-                      isParentActive(item.children) ? "text-white" : ""
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon size={18} />
-                      <span>{item.label}</span>
-                    </div>
-                    {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                  </div>
-                  {isOpen && (
-                    <div className="ml-4 border-l border-slate-700 pl-2 mt-1 mb-1">
-                      {item.children.map((child) => (
-                        <Link
-                          key={child.path}
-                          to={child.path}
-                          className={`sidebar-nav-item text-xs py-2 ${
-                            isActive(child.path) ? "active" : ""
-                          }`}
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />
-                          {child.label}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            }
-
             return (
               <Link
                 key={item.path}
@@ -189,7 +134,7 @@ export default function AdminLayout({ children }) {
 
         {/* User & Logout */}
         <div className="border-t border-slate-700 p-4">
-          <Link to="/admin/profil" className="flex items-center gap-3 mb-3 hover:opacity-80 transition-opacity">
+          <div className="flex items-center gap-3 mb-3">
             {user?.foto ? (
               <img
                 src={`http://localhost:5000/uploads/foto/${user.foto}`}
@@ -197,15 +142,15 @@ export default function AdminLayout({ children }) {
                 className="w-8 h-8 rounded-full object-cover shrink-0"
               />
             ) : (
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0">
-                {user?.name?.charAt(0) || "A"}
+              <div className="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0">
+                {user?.name?.charAt(0) || "U"}
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-medium truncate">{user?.name || "Admin"}</p>
-              <p className="text-slate-400 text-xs truncate">{user?.email}</p>
+              <p className="text-white text-sm font-medium truncate">{user?.name || "Alumni"}</p>
+              <p className="text-slate-400 text-xs truncate">NIM: {user?.nim}</p>
             </div>
-          </Link>
+          </div>
           <div
             role="button"
             onClick={handleLogout}

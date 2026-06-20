@@ -62,6 +62,37 @@ app.use(
   })
 );
 
+// Rate Limiting
+const rateLimit = require("express-rate-limit");
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 menit
+  max: 300, // batasi setiap IP hingga 300 request per 15 menit
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Terlalu banyak permintaan dari IP ini, silakan coba lagi setelah 15 menit.",
+  },
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 menit
+  max: 15, // batasi setiap IP hingga 15 request login per 15 menit
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Terlalu banyak percobaan login dari IP ini, silakan coba lagi setelah 15 menit.",
+  },
+});
+
+// Terapkan rate limiter ke login secara spesifik
+app.use("/api/v1/auth/login", authLimiter);
+
+// Terapkan rate limiter global ke semua rute API
+app.use("/api/v1", apiLimiter);
+
 // Security & Performance middleware
 app.use(
   helmet({

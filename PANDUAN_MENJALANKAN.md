@@ -1,8 +1,8 @@
 # Panduan Menjalankan Project
 
-## Sistem Informasi Pengelolaan Data Alumni (Politeknik Negeri Manado)
+## Sistem Informasi Pengelolaan Data Alumni & Tracer Study (Politeknik Negeri Manado)
 
-Panduan ini menjelaskan langkah-demi-langkah cara menyiapkan lingkungan kerja (_development environment_) dan menjalankan aplikasi **Alumni Management** (Backend & Frontend) di komputer lokal Anda menggunakan Laragon, Node.js, dan Prisma ORM.
+Panduan ini menjelaskan langkah-demi-langkah cara menyiapkan lingkungan kerja (_development environment_) dan menjalankan aplikasi **Alumni Management & Tracer Study** (Backend & Frontend) di komputer lokal Anda menggunakan Laragon, Node.js, dan Prisma ORM.
 
 ---
 
@@ -11,7 +11,7 @@ Panduan ini menjelaskan langkah-demi-langkah cara menyiapkan lingkungan kerja (_
 Sebelum memulai, pastikan perangkat Anda telah terpasang aplikasi berikut:
 
 1. **Node.js** (Wajib menggunakan versi **v22.13.1**). Silakan unduh di [Node.js v22.13.1 Release Page](https://nodejs.org/en/blog/release/v22.13.1).
-2. **Laragon** (Digunakan sebagai server lokal untuk database MySQL). Unduh di [laragon.org](https://laragon.org/). cara install laragon [(https://youtu.be/2slaFy_YdfE?si=AYgzEsXaQ4z-7qnK)]
+2. **Laragon** (Digunakan sebagai server lokal untuk database MySQL). Unduh di [laragon.org](https://laragon.org/). Cara install Laragon [(Tutorial YouTube)](https://youtu.be/2slaFy_YdfE?si=AYgzEsXaQ4z-7qnK)
 3. **Google Chrome** atau **Microsoft Edge** (Wajib terpasang di sistem operasi Windows karena fitur **Ekspor PDF** menggunakan engine Puppeteer yang otomatis mendeteksi browser ini untuk mencetak dokumen).
 4. **Visual Studio Code** atau text editor pilihan Anda.
 
@@ -95,7 +95,7 @@ Aplikasi ini menggunakan database **MySQL** yang dijalankan secara lokal via Lar
      ```bash
      npm run db:push
      ```
-     _(Perintah ini akan menyinkronkan model data langsung ke database `db-alumni` di Laragon. Anda tidak perlu mengimpor file `.sql` secara manual, semua tabel akan dibuat otomatis oleh Prisma)._
+     _(Perintah ini akan menyinkronkan model data langsung ke database `db-alumni` di Laragon. Semua tabel, relasi, dan primary/foreign keys akan dibuat otomatis oleh Prisma)._
 5. Jalankan server backend dalam mode pengembangan dengan perintah:
 
    ```bash
@@ -104,8 +104,10 @@ Aplikasi ini menggunakan database **MySQL** yang dijalankan secara lokal via Lar
 
    - **💡 Catatan Auto-Seeding:** Ketika server backend pertama kali dijalankan dan mendeteksi database `db-alumni` masih kosong, aplikasi secara otomatis menjalankan skrip seeder (`src/seed.js`). Skrip ini akan mengisi data awal secara otomatis ke database berupa:
      - **Akun Admin Akademik:** Email `admin@polimdo.ac.id` dengan Password `admin123`.
-     - **7 Program Studi:** D4 Teknik Informatika, D4 Teknik Elektro, D4 Teknik Mesin, dll.
-     - **4 Data Alumni Contoh:** Untuk mempermudah pengujian di dashboard.
+     - **7 Jurusan & Program Studi:** D4 Teknik Informatika, D4 TRPL, D3 Teknik Listrik, dll.
+     - **4 Data Alumni Contoh:** NIM `2020714001` (Ahmad Fauzan), NIM `2020714002` (Siti Rahayu), dll (password alumni disamakan dengan NIM masing-masing).
+     - **1 Periode Tracer Study Aktif:** "Tracer Study Periode 2026" (Target: Semua NIM).
+     - **4 Pertanyaan Kuesioner Dinamis:** Sebagai template awal untuk pengisian tracer study.
 
 ---
 
@@ -133,17 +135,34 @@ Aplikasi ini menggunakan database **MySQL** yang dijalankan secara lokal via Lar
 
 ---
 
-## 🔐 Cara Login & Menguji Aplikasi
+## 🔐 Cara Login & Menguji Aplikasi (Multi-Role)
 
-Setelah kedua server berjalan dengan sukses:
+Setelah kedua server berjalan dengan sukses, Anda dapat masuk menggunakan salah satu dari dua akun role berikut untuk menguji fiturnya:
 
-1. Akses halaman login di browser pada link `http://localhost:5173/login` (atau otomatis diarahkan ke sana).
-2. Masukkan kredensial login default yang telah dibuat oleh sistem secara otomatis:
+### A. Menguji Fitur Sebagai Admin (Akademik)
+1. Akses halaman login di browser pada link `http://localhost:5173/login`.
+2. Masukkan kredensial login Admin default:
    - **Email:** `admin@polimdo.ac.id`
    - **Password:** `admin123`
-3. Klik **Login**. Anda akan masuk ke halaman Dashboard Utama Admin Akademik Politeknik Negeri Manado.
-4. Anda sekarang dapat mencoba seluruh fitur seperti:
-   - Menambahkan/mengedit data Program Studi di menu **Program Studi**.
-   - Menambahkan/mengubah data Alumni di menu **Alumni**.
-   - Mengisi tanggal kelulusan, nomor ijazah, dan tanggal pengambilan ijazah untuk memantau perubahan status alur alumni di halaman dashboard.
-   - Melakukan ekspor data ke format **Excel** (.xlsx) dan cetak **PDF** (.pdf) di menu **Laporan**.
+3. Klik **Login**. Anda akan masuk ke halaman Dashboard Utama Admin Akademik.
+4. Fitur yang dapat dicoba sebagai Admin:
+   - Mengelola Program Studi/Jurusan di menu **Jurusan**.
+   - Menginput, mengubah, serta menghapus data alumni di menu **Alumni**.
+   - Mengelola jadwal periode tracer study beserta filter NIM target (Semua, Ganjil, atau Genap) di menu **Tracer Study -> Periode**.
+   - Mengelola jenis kuesioner tracer study secara dinamis di menu **Tracer Study -> Pertanyaan**.
+   - Memantau jawaban kuisioner tracer study secara real-time pada menu **Tracer Study -> Monitoring**.
+   - Melakukan ekspor data ke format **Excel** (.xlsx) dan **PDF** (.pdf) di menu **Laporan**.
+   - Mengubah foto profil pribadi dengan crop sirkular 1:1, dan menghapusnya dengan aman di menu **Profil**.
+
+### B. Menguji Fitur Sebagai Alumni (Lulusan)
+1. Masuk ke halaman login `http://localhost:5173/login`.
+2. Masukkan kredensial login Alumni default (NIM sebagai username & password):
+   - **Username / NIM:** `2020714001`
+   - **Password:** `2020714001`
+3. Klik **Login**. Anda akan masuk ke halaman Dashboard Portal Alumni.
+4. Fitur yang dapat dicoba sebagai Alumni:
+   - Memantau status kelulusan akademik & status penerbitan ijazah.
+   - Mengisi kuesioner dinamis Tracer Study pada menu **Isi Tracer Study** (jika NIM Anda cocok dengan aturan periode aktif).
+   - Mengisi dan melengkapi riwayat pekerjaan pertama & saat ini.
+   - Memantau data statistik karir global alumni Politeknik Negeri Manado secara interaktif (diagram Recharts).
+   - Mengubah data sandi pribadi serta mengunggah foto profil yang dicrop dengan rasio 1:1 di menu **Profil**.

@@ -15,36 +15,44 @@ model User {
   name      String
   email     String   @unique
   password  String
+  foto      String?  @db.VarChar(255)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("users")
 }
 
-model ProgramStudi {
-  id        Int      @id @default(autoincrement())
-  namaProdi String   @map("nama_prodi")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+model Jurusan {
+  id           Int      @id @default(autoincrement())
+  namaJurusan  String   @map("nama_jurusan")
+  namaProdi    String   @map("nama_prodi")
+  jenjang      String?  @map("jenjang")
+  akreditasi   String?  @map("akreditasi")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   alumni Alumni[]
 
-  @@map("program_studi")
+  @@map("jurusan")
 }
 
 model Alumni {
-  id                       Int       @id @default(autoincrement())
+  id                       Int               @id @default(autoincrement())
   nama                     String
-  nim                      String    @unique
-  programStudiId           Int       @map("program_studi_id")
-  tanggalWisuda            DateTime? @map("tanggal_wisuda")
-  tanggalKelulusan         DateTime? @map("tanggal_kelulusan")
-  nomorIjazah              String?   @map("nomor_ijazah")
-  tanggalPengambilanIjazah DateTime? @map("tanggal_pengambilan_ijazah")
-  createdAt                DateTime  @default(now()) @map("created_at")
-  updatedAt                DateTime  @updatedAt @map("updated_at")
+  nim                      String            @unique
+  password                 String            @db.VarChar(255)
+  jurusanId                Int               @map("jurusan_id")
+  foto                     String?           @db.VarChar(255)
+  tanggalWisuda            DateTime?         @map("tanggal_wisuda")
+  tanggalKelulusan         DateTime?         @map("tanggal_kelulusan")
+  nomorIjazah              String?           @map("nomor_ijazah")
+  tanggalPengambilanIjazah DateTime?         @map("tanggal_pengambilan_ijazah")
+  createdAt                DateTime          @default(now()) @map("created_at")
+  updatedAt                DateTime          @updatedAt @map("updated_at")
 
-  programStudi ProgramStudi @relation(fields: [programStudiId], references: [id])
+  jurusan                  Jurusan           @relation(fields: [jurusanId], references: [id])
+  pekerjaanAlumni          PekerjaanAlumni[]
+  tracerResponses          TracerResponse[]
 
   @@map("alumni")
 }
@@ -55,4 +63,75 @@ model Session {
   data       String? @db.MediumText
 
   @@map("sessions")
+}
+
+model TracerPeriod {
+  id             Int              @id @default(autoincrement())
+  namaPeriode    String           @map("nama_periode")
+  tanggalMulai   DateTime         @map("tanggal_mulai")
+  tanggalSelesai DateTime         @map("tanggal_selesai")
+  status         String           @map("status") // Aktif / Tidak Aktif
+  modePengisian  String           @map("mode_pengisian") // Semua / Ganjil / Genap
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  responses      TracerResponse[]
+
+  @@map("tracer_periods")
+}
+
+model TracerQuestion {
+  id         Int            @id @default(autoincrement())
+  pertanyaan String         @db.Text
+  tipe       String         @map("tipe") // text / radio / select / textarea
+  opsi       String?        @db.Text @map("opsi") // format JSON/string dipisahkan koma
+  isRequired Boolean        @default(true) @map("is_required")
+  urutan     Int            @default(0) @map("urutan")
+  isActive   Boolean        @default(true) @map("is_active")
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+  answers    TracerAnswer[]
+
+  @@map("tracer_questions")
+}
+
+model TracerResponse {
+  id             Int            @id @default(autoincrement())
+  tracerPeriodId Int            @map("tracer_period_id")
+  alumniId       Int            @map("alumni_id")
+  submittedAt    DateTime       @default(now()) @map("submitted_at")
+  period         TracerPeriod   @relation(fields: [tracerPeriodId], references: [id], onDelete: Cascade)
+  alumni         Alumni         @relation(fields: [alumniId], references: [id], onDelete: Cascade)
+  answers        TracerAnswer[]
+
+  @@map("tracer_responses")
+}
+
+model TracerAnswer {
+  id         Int            @id @default(autoincrement())
+  responseId Int            @map("response_id")
+  questionId Int            @map("question_id")
+  jawaban    String         @db.Text @map("jawaban")
+  response   TracerResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  question   TracerQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("tracer_answers")
+}
+
+model PekerjaanAlumni {
+  id              Int      @id @default(autoincrement())
+  alumniId        Int      @map("alumni_id")
+  namaPerusahaan  String   @map("nama_perusahaan")
+  jabatan         String   @map("jabatan")
+  bidangPekerjaan String   @map("bidang_pekerjaan")
+  statusPekerjaan String   @map("status_pekerjaan") // Tetap / Kontrak
+  tahunMulai      Int      @map("tahun_mulai")
+  gajiPertama     Float?   @map("gaji_pertama")
+  kesesuaianBidang String  @map("kesesuaian_bidang") // Sesuai / Tidak Sesuai
+  waktuTunggu     Int      @map("waktu_tunggu") // waktu tunggu dalam bulan
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  alumni          Alumni   @relation(fields: [alumniId], references: [id], onDelete: Cascade)
+
+  @@map("pekerjaan_alumni")
 }
