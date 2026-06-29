@@ -159,7 +159,7 @@ export default function PertanyaanPage() {
                 questions.map((q) => (
                   <tr key={q.id}>
                     <td className="font-mono text-center font-bold text-slate-500 w-16">{q.urutan}</td>
-                    <td className="font-medium text-slate-800 max-w-sm">
+                    <td className="font-medium text-slate-800 max-w-sm whitespace-normal break-words">
                       <div className="flex gap-2">
                         <HelpCircle size={16} className="text-teal-600 shrink-0 mt-0.5" />
                         <span>{q.pertanyaan}</span>
