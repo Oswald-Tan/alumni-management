@@ -62,8 +62,13 @@ export default function DashboardPage() {
     );
   }
 
-  const isTracerDone = tracerStatus.status === "SUDAH_MENGISI";
-  const isTracerAvailable = tracerStatus.eligible && tracerStatus.status === "BELUM_MENGISI";
+  const filledCategories = tracerStatus.filledCategories || [];
+  const isDiktiDone = !tracerStatus.isEligibleDikti || filledCategories.includes("DIKTI");
+  const isIkuDone = !tracerStatus.isEligibleIku || filledCategories.includes("IKU");
+
+  const isTracerDone = Boolean(tracerStatus.eligible && isDiktiDone && isIkuDone);
+  const isTracerAvailable = Boolean(tracerStatus.eligible && (!isDiktiDone || !isIkuDone));
+  const isPartialDone = Boolean(tracerStatus.eligible && filledCategories.length > 0 && !isTracerDone);
 
   // Data status alumni global untuk grafik
   const pieDataGlobal = globalStats?.statusDistribusi?.map((s) => ({
@@ -153,7 +158,19 @@ export default function DashboardPage() {
                       <CheckCircle2 className="text-emerald-500 shrink-0 mt-0.5" size={18} />
                       <div>
                         <p className="text-sm font-semibold text-slate-800">Selesai Mengisi</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{tracerStatus.message}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Anda telah menyelesaikan pengisian seluruh kuesioner Tracer Study.
+                        </p>
+                      </div>
+                    </div>
+                  ) : isPartialDone ? (
+                    <div className="flex gap-3">
+                      <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={18} />
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800">Sebagian Terisi</p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Sudah mengisi kuesioner ({filledCategories.join(", ")}). Silakan lengkapi bagian sisanya.
+                        </p>
                       </div>
                     </div>
                   ) : isTracerAvailable ? (
@@ -161,15 +178,17 @@ export default function DashboardPage() {
                       <AlertCircle className="text-orange-500 shrink-0 mt-0.5" size={18} />
                       <div>
                         <p className="text-sm font-semibold text-slate-800">Kuisioner Tersedia</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Silakan isi tracer study untuk membantu evaluasi kurikulum akademik.</p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Silakan isi tracer study ({[tracerStatus.isEligibleDikti && "DIKTI", tracerStatus.isEligibleIku && "IKU"].filter(Boolean).join(" & ")}) untuk evaluasi kurikulum.
+                        </p>
                       </div>
                     </div>
                   ) : (
                     <div className="flex gap-3">
                       <AlertCircle className="text-slate-400 shrink-0 mt-0.5" size={18} />
                       <div>
-                        <p className="text-sm font-semibold text-slate-600">Belum Dibuka</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{tracerStatus.message}</p>
+                        <p className="text-sm font-semibold text-slate-600">Belum Dibuka / Berakhir</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{tracerStatus.message || "Kuisioner belum dibuka untuk Anda saat ini."}</p>
                       </div>
                     </div>
                   )}
@@ -179,7 +198,7 @@ export default function DashboardPage() {
               <div className="mt-4 pt-4 border-t border-slate-100">
                 {isTracerAvailable ? (
                   <Link to="/alumni/tracer" className="btn-primary block text-center bg-teal-600 hover:bg-teal-700 border-none text-sm py-2 px-4 rounded-xl text-white font-semibold">
-                    Isi Kuisioner Tracer
+                    {isPartialDone ? "Lanjutkan Isi Tracer" : "Isi Kuisioner Tracer"}
                   </Link>
                 ) : (
                   <span className="text-xs text-slate-400 italic">

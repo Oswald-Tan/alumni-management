@@ -120,8 +120,23 @@ const removePeriod = async (req, res) => {
 
 const getAllQuestions = async (req, res) => {
   try {
+    const { category, jurusanId } = req.query;
+    const where = {};
+
+    if (category) {
+      where.category = category;
+    }
+
+    if (req.session.role === "ADMIN_PRODI" && req.session.jurusanId) {
+      where.OR = [{ jurusanId: null }, { jurusanId: req.session.jurusanId }];
+    } else if (jurusanId) {
+      where.OR = [{ jurusanId: null }, { jurusanId: parseInt(jurusanId) }];
+    }
+
     const questions = await prisma.tracerQuestion.findMany({
-      orderBy: { urutan: "asc" },
+      where,
+      include: { jurusan: true },
+      orderBy: [{ section: "asc" }, { urutan: "asc" }],
     });
     return res.status(200).json({ success: true, data: questions });
   } catch (error) {
@@ -132,9 +147,17 @@ const getAllQuestions = async (req, res) => {
 
 const createQuestion = async (req, res) => {
   try {
-    const { pertanyaan, tipe, opsi, isRequired, urutan, isActive } = req.body;
+    const { pertanyaan, tipe, opsi, isRequired, urutan, isActive, category, section, jurusanId } = req.body;
     if (!pertanyaan || !tipe) {
       return res.status(400).json({ success: false, message: "Pertanyaan dan tipe wajib diisi" });
+    }
+
+    // Jika Admin Prodi, otomatis tetapkan jurusanId dari session
+    let targetJurusanId = null;
+    if (req.session.role === "ADMIN_PRODI" && req.session.jurusanId) {
+      targetJurusanId = req.session.jurusanId;
+    } else if (jurusanId) {
+      targetJurusanId = parseInt(jurusanId);
     }
 
     const question = await prisma.tracerQuestion.create({
@@ -145,6 +168,9 @@ const createQuestion = async (req, res) => {
         isRequired: isRequired !== undefined ? isRequired : true,
         urutan: urutan !== undefined ? parseInt(urutan) : 0,
         isActive: isActive !== undefined ? isActive : true,
+        category: category || "DIKTI",
+        section: section || null,
+        jurusanId: targetJurusanId,
       },
     });
 
@@ -158,7 +184,17 @@ const createQuestion = async (req, res) => {
 const updateQuestion = async (req, res) => {
   try {
     const { id } = req.params;
-    const { pertanyaan, tipe, opsi, isRequired, urutan, isActive } = req.body;
+    const { pertanyaan, tipe, opsi, isRequired, urutan, isActive, category, section, jurusanId } = req.body;
+
+    const existing = await prisma.tracerQuestion.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: "Pertanyaan tidak ditemukan" });
+    }
+
+    // Hanya Admin Prodi pengelola atau Super Admin yang bisa mengedit
+    if (req.session.role === "ADMIN_PRODI" && existing.jurusanId && existing.jurusanId !== req.session.jurusanId) {
+      return res.status(403).json({ success: false, message: "Anda tidak memiliki akses untuk mengubah pertanyaan prodi lain" });
+    }
 
     const updated = await prisma.tracerQuestion.update({
       where: { id: parseInt(id) },
@@ -169,6 +205,9 @@ const updateQuestion = async (req, res) => {
         isRequired: isRequired !== undefined ? isRequired : undefined,
         urutan: urutan !== undefined ? parseInt(urutan) : undefined,
         isActive: isActive !== undefined ? isActive : undefined,
+        category: category !== undefined ? category : undefined,
+        section: section !== undefined ? section : undefined,
+        jurusanId: jurusanId !== undefined ? (jurusanId ? parseInt(jurusanId) : null) : undefined,
       },
     });
 
@@ -182,6 +221,15 @@ const updateQuestion = async (req, res) => {
 const removeQuestion = async (req, res) => {
   try {
     const { id } = req.params;
+    const existing = await prisma.tracerQuestion.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: "Pertanyaan tidak ditemukan" });
+    }
+
+    if (req.session.role === "ADMIN_PRODI" && existing.jurusanId && existing.jurusanId !== req.session.jurusanId) {
+      return res.status(403).json({ success: false, message: "Anda tidak memiliki akses untuk menghapus pertanyaan prodi lain" });
+    }
+
     await prisma.tracerQuestion.delete({ where: { id: parseInt(id) } });
     return res.status(200).json({ success: true, message: "Pertanyaan berhasil dihapus" });
   } catch (error) {
@@ -203,6 +251,7 @@ const checkEligibility = async (req, res) => {
 
     const alumni = await prisma.alumni.findUnique({
       where: { id: alumniId },
+      include: { jurusan: true },
     });
 
     if (!alumni) {
@@ -256,31 +305,38 @@ const checkEligibility = async (req, res) => {
       });
     }
 
-    // Cek apakah sudah pernah mengisi periode ini
-    const existingResponse = await prisma.tracerResponse.findFirst({
+    // Menghitung selisih tahun lulus alumni dari tahun berjalan
+    const gradDate = alumni.tanggalKelulusan || alumni.tanggalWisuda;
+    const gradYear = gradDate ? new Date(gradDate).getFullYear() : parseInt("20" + alumni.nim.substring(0, 2)) || now.getFullYear() - 1;
+    const currentYear = now.getFullYear();
+    const yearsPostGraduation = Math.max(1, currentYear - gradYear);
+
+    // Menentukan eligibilitas DIKTI vs IKU
+    // DIKTI = Lulusan 1 Tahun
+    // IKU = Lulusan 1-5 Tahun (input 5 tahun ke belakang)
+    const isEligibleDikti = (yearsPostGraduation === 1);
+    const isEligibleIku = (yearsPostGraduation >= 1 && yearsPostGraduation <= 5);
+
+    // Cek pengisian yang sudah dilakukan
+    const existingResponses = await prisma.tracerResponse.findMany({
       where: {
         tracerPeriodId: activePeriod.id,
         alumniId: alumni.id,
       },
     });
 
-    if (existingResponse) {
-      return res.status(200).json({
-        success: true,
-        eligible: false,
-        status: "SUDAH_MENGISI",
-        message: "Tracer study berhasil dikirim. Anda tidak dapat mengubah jawaban lagi.",
-        submittedAt: existingResponse.submittedAt,
-      });
-    }
+    const filledCategories = existingResponses.map(r => r.category);
 
-    // Jika lolos semua pengecekan
     return res.status(200).json({
       success: true,
-      eligible: true,
-      status: "BELUM_MENGISI",
-      message: "Anda berhak mengisi tracer study periode ini.",
+      eligible: isEligibleDikti || isEligibleIku,
+      status: "ELIGIBILITY_INFO",
+      yearsPostGraduation,
+      isEligibleDikti,
+      isEligibleIku,
+      filledCategories,
       period: activePeriod,
+      message: "Status kelayakan pengisian kuesioner tracer study.",
     });
   } catch (error) {
     console.error("Check eligibility error:", error);
@@ -290,9 +346,27 @@ const checkEligibility = async (req, res) => {
 
 const getActiveQuestions = async (req, res) => {
   try {
+    const alumniId = req.session.userId;
+    const { category } = req.query; // "DIKTI" atau "IKU"
+
+    const alumni = await prisma.alumni.findUnique({
+      where: { id: alumniId },
+    });
+
+    const targetCategory = category || "DIKTI";
+
+    const where = {
+      isActive: true,
+      category: targetCategory,
+      OR: [
+        { jurusanId: null }, // Pertanyaan umum/global
+        { jurusanId: alumni ? alumni.jurusanId : undefined }, // Pertanyaan spesifik prodi
+      ],
+    };
+
     const questions = await prisma.tracerQuestion.findMany({
-      where: { isActive: true },
-      orderBy: { urutan: "asc" },
+      where,
+      orderBy: [{ section: "asc" }, { urutan: "asc" }],
     });
     return res.status(200).json({ success: true, data: questions });
   } catch (error) {
@@ -308,7 +382,9 @@ const submitResponse = async (req, res) => {
       return res.status(401).json({ success: false, message: "Hanya alumni yang dapat mengisi tracer" });
     }
 
-    const { answers, job } = req.body; // answers: [{questionId, jawaban}], job: {namaPerusahaan, jabatan, bidangPekerjaan, statusPekerjaan, tahunMulai, gajiPertama, kesesuaianBidang, waktuTunggu}
+    const { category, answers, job } = req.body; // category: "DIKTI" | "IKU", answers: [{questionId, jawaban}], job: {...}
+
+    const targetCategory = category || "DIKTI";
 
     if (!answers || !Array.isArray(answers) || answers.length === 0) {
       return res.status(400).json({ success: false, message: "Jawaban kuisioner wajib dikirim" });
@@ -322,16 +398,17 @@ const submitResponse = async (req, res) => {
       return res.status(400).json({ success: false, message: "Tidak ada periode tracer yang aktif" });
     }
 
-    // Cek pengisian ganda
+    // Cek pengisian ganda untuk kategori yang sama pada periode ini
     const existing = await prisma.tracerResponse.findFirst({
       where: {
         tracerPeriodId: activePeriod.id,
         alumniId: alumniId,
+        category: targetCategory,
       },
     });
 
     if (existing) {
-      return res.status(400).json({ success: false, message: "Anda sudah mengisi kuisioner tracer study pada periode ini." });
+      return res.status(400).json({ success: false, message: `Anda sudah mengisi kuisioner tracer study kategori ${targetCategory} pada periode ini.` });
     }
 
     // Transaction
@@ -341,6 +418,7 @@ const submitResponse = async (req, res) => {
         data: {
           tracerPeriodId: activePeriod.id,
           alumniId: alumniId,
+          category: targetCategory,
         },
       });
 
@@ -368,6 +446,7 @@ const submitResponse = async (req, res) => {
             tahunMulai: parseInt(job.tahunMulai) || new Date().getFullYear(),
             gajiPertama: job.gajiPertama ? parseFloat(job.gajiPertama) : null,
             kesesuaianBidang: job.kesesuaianBidang || "Sesuai",
+            lokasiKerja: job.lokasiKerja || "Dalam Negeri",
             waktuTunggu: parseInt(job.waktuTunggu) || 0,
           },
         });
@@ -378,7 +457,7 @@ const submitResponse = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Tracer study berhasil dikirim. Anda tidak dapat mengubah jawaban lagi.",
+      message: `Kuesioner Tracer Study (${targetCategory}) berhasil dikirim. Terima kasih!`,
       data: result,
     });
   } catch (error) {
@@ -393,10 +472,15 @@ const submitResponse = async (req, res) => {
 
 const getMonitoringResults = async (req, res) => {
   try {
-    const { jurusanId, status, periodId } = req.query;
+    const { jurusanId, status, periodId, category } = req.query;
 
     const where = {};
-    if (jurusanId) where.jurusanId = parseInt(jurusanId);
+    // Admin Prodi: otomatis filter berdasarkan jurusan
+    if (req.session.role === "ADMIN_PRODI" && req.session.jurusanId) {
+      where.jurusanId = req.session.jurusanId;
+    } else if (jurusanId) {
+      where.jurusanId = parseInt(jurusanId);
+    }
 
     // Ambil semua alumni
     const alumniList = await prisma.alumni.findMany({
@@ -413,41 +497,58 @@ const getMonitoringResults = async (req, res) => {
 
     // Ambil periode filter atau periode aktif
     let targetPeriod = null;
-    if (periodId) {
+    if (periodId && !isNaN(parseInt(periodId))) {
       targetPeriod = await prisma.tracerPeriod.findUnique({ where: { id: parseInt(periodId) } });
     } else {
       targetPeriod = await prisma.tracerPeriod.findFirst({ where: { status: "Aktif" } });
     }
 
     if (!targetPeriod) {
-      // Jika tidak ada periode aktif/terpilih, kembalikan dengan status "Belum Mengisi" untuk semua
       const result = alumniList.map((a) => ({
         id: a.id,
         nama: a.nama,
         nim: a.nim,
         jurusan: a.jurusan,
         statusTracer: "Belum Mengisi",
+        categoriesFilled: [],
         tanggalSubmit: null,
       }));
       return res.status(200).json({ success: true, data: result });
     }
 
     // Ambil semua response untuk periode target
+    const responseWhere = { tracerPeriodId: targetPeriod.id };
+    if (category) {
+      responseWhere.category = category;
+    }
+
     const responses = await prisma.tracerResponse.findMany({
-      where: { tracerPeriodId: targetPeriod.id },
+      where: responseWhere,
     });
-    const respondedAlumniIds = new Set(responses.map((r) => r.alumniId));
-    const responseMap = Object.fromEntries(responses.map((r) => [r.alumniId, r.submittedAt]));
+
+    // Map responses per alumni
+    const alumniResponseMap = {};
+    responses.forEach((r) => {
+      if (!alumniResponseMap[r.alumniId]) {
+        alumniResponseMap[r.alumniId] = {
+          categories: [],
+          lastSubmittedAt: r.submittedAt,
+        };
+      }
+      alumniResponseMap[r.alumniId].categories.push(r.category);
+    });
 
     let results = alumniList.map((a) => {
-      const sudahMengisi = respondedAlumniIds.has(a.id);
+      const responseData = alumniResponseMap[a.id];
+      const sudahMengisi = Boolean(responseData && responseData.categories.length > 0);
       return {
         id: a.id,
         nama: a.nama,
         nim: a.nim,
         jurusan: a.jurusan,
         statusTracer: sudahMengisi ? "Sudah Mengisi" : "Belum Mengisi",
-        tanggalSubmit: sudahMengisi ? responseMap[a.id] : null,
+        categoriesFilled: responseData ? responseData.categories : [],
+        tanggalSubmit: responseData ? responseData.lastSubmittedAt : null,
       };
     });
 
@@ -473,14 +574,19 @@ const getAccreditationReport = async (req, res) => {
 
     // Ambil periode target
     let targetPeriod = null;
-    if (periodId) {
+    if (periodId && !isNaN(parseInt(periodId))) {
       targetPeriod = await prisma.tracerPeriod.findUnique({ where: { id: parseInt(periodId) } });
     } else {
       targetPeriod = await prisma.tracerPeriod.findFirst({ where: { status: "Aktif" } });
     }
 
     const where = {};
-    if (jurusanId) where.id = parseInt(jurusanId);
+    // Admin Prodi: otomatis filter berdasarkan jurusan
+    if (req.session.role === "ADMIN_PRODI" && req.session.jurusanId) {
+      where.id = req.session.jurusanId;
+    } else if (jurusanId) {
+      where.id = parseInt(jurusanId);
+    }
 
     // Ambil program studi/jurusan yang aktif
     const jurusans = await prisma.jurusan.findMany({
@@ -572,14 +678,18 @@ const exportTracerExcel = async (req, res) => {
     const { jurusanId, periodId } = req.query;
 
     let targetPeriod = null;
-    if (periodId) {
+    if (periodId && !isNaN(parseInt(periodId))) {
       targetPeriod = await prisma.tracerPeriod.findUnique({ where: { id: parseInt(periodId) } });
     } else {
       targetPeriod = await prisma.tracerPeriod.findFirst({ where: { status: "Aktif" } });
     }
 
     const where = {};
-    if (jurusanId) where.jurusanId = parseInt(jurusanId);
+    if (req.session.role === "ADMIN_PRODI" && req.session.jurusanId) {
+      where.jurusanId = req.session.jurusanId;
+    } else if (jurusanId) {
+      where.jurusanId = parseInt(jurusanId);
+    }
 
     // Ambil data alumni beserta jawaban tracer dan pekerjaan
     const alumniList = await prisma.alumni.findMany({
@@ -698,6 +808,61 @@ const exportTracerExcel = async (req, res) => {
   }
 };
 
+const getAlumniResponseDetail = async (req, res) => {
+  try {
+    const { alumniId } = req.params;
+    const { periodId } = req.query;
+
+    const alumni = await prisma.alumni.findUnique({
+      where: { id: parseInt(alumniId) },
+      include: { jurusan: true },
+    });
+
+    if (!alumni) {
+      return res.status(404).json({ success: false, message: "Alumni tidak ditemukan" });
+    }
+
+    if (req.session.role === "ADMIN_PRODI" && alumni.jurusanId !== req.session.jurusanId) {
+      return res.status(403).json({ success: false, message: "Akses ditolak untuk jurusan alumni ini" });
+    }
+
+    const where = { alumniId: parseInt(alumniId) };
+    if (periodId && !isNaN(parseInt(periodId))) {
+      where.tracerPeriodId = parseInt(periodId);
+    }
+
+    const responses = await prisma.tracerResponse.findMany({
+      where,
+      include: {
+        period: true,
+        answers: {
+          include: {
+            question: true,
+          },
+        },
+      },
+      orderBy: { submittedAt: "desc" },
+    });
+
+    // Urutkan jawaban berdasarkan urutan pertanyaan
+    const formattedResponses = responses.map((r) => ({
+      ...r,
+      answers: r.answers.sort((a, b) => (a.question?.urutan || 0) - (b.question?.urutan || 0)),
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        alumni,
+        responses: formattedResponses,
+      },
+    });
+  } catch (error) {
+    console.error("Get alumni response detail error:", error);
+    return res.status(500).json({ success: false, message: "Terjadi kesalahan server" });
+  }
+};
+
 module.exports = {
   getAllPeriods,
   createPeriod,
@@ -711,6 +876,7 @@ module.exports = {
   getActiveQuestions,
   submitResponse,
   getMonitoringResults,
+  getAlumniResponseDetail,
   getAccreditationReport,
   exportTracerExcel,
 };

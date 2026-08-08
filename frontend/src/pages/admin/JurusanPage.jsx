@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, BookOpen, Search, X } from "lucide-react";
-import { getJurusan, createJurusan, updateJurusan, deleteJurusan } from "../../services/jurusanService";
+import {
+  getJurusan,
+  createJurusan,
+  updateJurusan,
+  deleteJurusan,
+} from "../../services/jurusanService";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../components/ConfirmModal";
 
@@ -8,7 +13,11 @@ export default function JurusanPage() {
   const [jurusanList, setJurusanList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [modal, setModal] = useState({ open: false, mode: "create", data: null });
+  const [modal, setModal] = useState({
+    open: false,
+    mode: "create",
+    data: null,
+  });
   const [form, setForm] = useState({
     namaJurusan: "",
     namaProdi: "",
@@ -62,7 +71,8 @@ export default function JurusanPage() {
     setModal({ open: true, mode: "edit", data: jurusan });
   };
 
-  const closeModal = () => setModal({ open: false, mode: "create", data: null });
+  const closeModal = () =>
+    setModal({ open: false, mode: "create", data: null });
 
   const handleSave = async () => {
     if (!form.namaJurusan.trim()) {
@@ -109,9 +119,10 @@ export default function JurusanPage() {
     });
   };
 
-  const filtered = jurusanList.filter((j) =>
-    j.namaJurusan.toLowerCase().includes(search.toLowerCase()) ||
-    j.namaProdi.toLowerCase().includes(search.toLowerCase())
+  const filtered = jurusanList.filter(
+    (j) =>
+      j.namaJurusan.toLowerCase().includes(search.toLowerCase()) ||
+      j.namaProdi.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -120,7 +131,9 @@ export default function JurusanPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Jurusan & Program Studi</h1>
-          <p className="page-subtitle">Kelola data jurusan, program studi, jenjang, dan akreditasi</p>
+          <p className="page-subtitle">
+            Kelola data jurusan, program studi, jenjang, dan akreditasi
+          </p>
         </div>
         <button onClick={openCreate} className="btn-primary">
           <Plus size={16} />
@@ -133,7 +146,10 @@ export default function JurusanPage() {
         {/* Search */}
         <div className="mb-4">
           <div className="relative max-w-xs">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
             <input
               type="text"
               placeholder="Cari jurusan atau prodi..."
@@ -160,33 +176,57 @@ export default function JurusanPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={7} className="text-center py-8 text-slate-400">Memuat...</td></tr>
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-slate-400">
+                    Memuat...
+                  </td>
+                </tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-8 text-slate-400">Tidak ada data</td></tr>
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-slate-400">
+                    Tidak ada data
+                  </td>
+                </tr>
               ) : (
                 filtered.map((jurusan, idx) => (
                   <tr key={jurusan.id}>
                     <td className="text-slate-400">{idx + 1}</td>
-                    <td className="font-semibold text-slate-700">{jurusan.namaJurusan}</td>
+                    <td className="font-semibold text-slate-700">
+                      {jurusan.namaJurusan}
+                    </td>
                     <td>
                       <div className="flex items-center gap-2">
                         <BookOpen size={15} className="text-teal-600" />
-                        <span className="font-medium text-slate-900">{jurusan.namaProdi}</span>
+                        <span className="font-medium text-slate-900">
+                          {jurusan.namaProdi}
+                        </span>
                       </div>
                     </td>
-                    <td className="text-slate-600 font-mono text-sm">{jurusan.jenjang || "-"}</td>
-                    <td>
-                      <span className="badge badge-purple">{jurusan.akreditasi || "-"}</span>
+                    <td className="text-slate-600 font-mono text-sm">
+                      {jurusan.jenjang || "-"}
                     </td>
                     <td>
-                      <span className="badge badge-blue">{jurusan._count?.alumni || 0} alumni</span>
+                      <span className="badge badge-purple">
+                        {jurusan.akreditasi || "-"}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="badge badge-blue">
+                        {jurusan._count?.alumni || 0} alumni
+                      </span>
                     </td>
                     <td>
                       <div className="flex items-center gap-2">
-                        <button onClick={() => openEdit(jurusan)} className="btn-secondary py-1.5 px-3">
+                        <button
+                          onClick={() => openEdit(jurusan)}
+                          className="btn-secondary py-1.5 px-3"
+                        >
                           <Pencil size={14} />
                         </button>
-                        <button onClick={() => handleDelete(jurusan)} className="btn-danger py-1.5 px-3">
+                        <button
+                          onClick={() => handleDelete(jurusan)}
+                          className="btn-danger py-1.5 px-3"
+                        >
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -205,9 +245,14 @@ export default function JurusanPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-800">
-                {modal.mode === "create" ? "Tambah Jurusan / Prodi" : "Edit Jurusan / Prodi"}
+                {modal.mode === "create"
+                  ? "Tambah Jurusan / Prodi"
+                  : "Edit Jurusan / Prodi"}
               </h2>
-              <button onClick={closeModal} className="text-slate-400 hover:text-slate-600">
+              <button
+                onClick={closeModal}
+                className="text-slate-400 hover:text-slate-600"
+              >
                 <X size={20} />
               </button>
             </div>
@@ -251,6 +296,7 @@ export default function JurusanPage() {
                     <option value="D3">D3</option>
                     <option value="D4">D4</option>
                     <option value="S1">S1</option>
+                    <option value="S2">S2</option>
                   </select>
                 </div>
 
@@ -274,8 +320,14 @@ export default function JurusanPage() {
             </div>
 
             <div className="flex gap-3 justify-end">
-              <button onClick={closeModal} className="btn-secondary">Batal</button>
-              <button onClick={handleSave} disabled={isSaving} className="btn-primary bg-teal-600 hover:bg-teal-500">
+              <button onClick={closeModal} className="btn-secondary">
+                Batal
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="btn-primary bg-teal-600 hover:bg-teal-500"
+              >
                 {isSaving ? "Menyimpan..." : "Simpan"}
               </button>
             </div>

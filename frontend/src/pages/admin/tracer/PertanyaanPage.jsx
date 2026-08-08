@@ -1,20 +1,23 @@
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, HelpCircle, X } from "lucide-react";
+import { Plus, Pencil, Trash2, HelpCircle, X, CheckCircle, Layers } from "lucide-react";
 import { getQuestions, createQuestion, updateQuestion, deleteQuestion } from "../../../services/tracerService";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../components/ConfirmModal";
 
 export default function PertanyaanPage() {
   const [questions, setQuestions] = useState([]);
+  const [activeCategory, setActiveCategory] = useState("DIKTI"); // "DIKTI" | "IKU"
   const [isLoading, setIsLoading] = useState(true);
   const [modal, setModal] = useState({ open: false, mode: "create", data: null });
   const [form, setForm] = useState({
     pertanyaan: "",
-    tipe: "text",
+    tipe: "radio",
     opsi: "",
     isRequired: true,
     urutan: 0,
     isActive: true,
+    category: "DIKTI",
+    section: "",
   });
   const [isSaving, setIsSaving] = useState(false);
   const [confirmModal, setConfirmModal] = useState({
@@ -25,8 +28,9 @@ export default function PertanyaanPage() {
   });
 
   const fetchQuestions = async () => {
+    setIsLoading(true);
     try {
-      const res = await getQuestions();
+      const res = await getQuestions({ category: activeCategory });
       setQuestions(res.data.data);
     } catch {
       toast.error("Gagal memuat data pertanyaan kuisioner");
@@ -37,7 +41,7 @@ export default function PertanyaanPage() {
 
   useEffect(() => {
     fetchQuestions();
-  }, []);
+  }, [activeCategory]);
 
   const handleChange = (e) => {
     const val = e.target.type === "checkbox" ? e.target.checked : e.target.value;
@@ -47,11 +51,13 @@ export default function PertanyaanPage() {
   const openCreate = () => {
     setForm({
       pertanyaan: "",
-      tipe: "text",
+      tipe: "radio",
       opsi: "",
       isRequired: true,
       urutan: questions.length + 1,
       isActive: true,
+      category: activeCategory,
+      section: activeCategory === "IKU" ? "Bagian 1: Kompetensi Utama (Hard Skills)" : "Kuesioner Wajib",
     });
     setModal({ open: true, mode: "create", data: null });
   };
@@ -64,6 +70,8 @@ export default function PertanyaanPage() {
       isRequired: q.isRequired,
       urutan: q.urutan,
       isActive: q.isActive,
+      category: q.category || activeCategory,
+      section: q.section || "",
     });
     setModal({ open: true, mode: "edit", data: q });
   };
@@ -126,12 +134,39 @@ export default function PertanyaanPage() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Pertanyaan Kuisioner</h1>
-          <p className="page-subtitle">Kelola pertanyaan kuisioner tracer study secara dinamis</p>
+          <h1 className="page-title">Pertanyaan Kuisioner Tracer Study</h1>
+          <p className="page-subtitle">Kelola pertanyaan tracer per prodi untuk Kategori DIKTI (1 Tahun) dan IKU (1-5 Tahun)</p>
         </div>
         <button onClick={openCreate} className="btn-primary flex items-center gap-2">
           <Plus size={16} />
-          Tambah Pertanyaan
+          Tambah Pertanyaan {activeCategory}
+        </button>
+      </div>
+
+      {/* Category Navigation Tabs */}
+      <div className="flex border-b border-slate-200 mb-6 space-x-4">
+        <button
+          onClick={() => setActiveCategory("DIKTI")}
+          className={`pb-3 px-4 font-bold text-sm border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+            activeCategory === "DIKTI"
+              ? "border-teal-600 text-teal-700"
+              : "border-transparent text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          <Layers size={16} />
+          Tracer DIKTI (1 Tahun)
+        </button>
+
+        <button
+          onClick={() => setActiveCategory("IKU")}
+          className={`pb-3 px-4 font-bold text-sm border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+            activeCategory === "IKU"
+              ? "border-teal-600 text-teal-700"
+              : "border-transparent text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          <CheckCircle size={16} />
+          Tracer IKU (1-5 Tahun Berdasarkan CPL)
         </button>
       </div>
 
@@ -142,7 +177,9 @@ export default function PertanyaanPage() {
             <thead>
               <tr>
                 <th>Urutan</th>
+                <th>Section / Bagian</th>
                 <th>Pertanyaan</th>
+                <th>Lingkup Prodi</th>
                 <th>Tipe</th>
                 <th>Pilihan Jawaban</th>
                 <th>Wajib</th>
@@ -152,18 +189,32 @@ export default function PertanyaanPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={7} className="text-center py-8 text-slate-400">Memuat...</td></tr>
+                <tr><td colSpan={9} className="text-center py-8 text-slate-400">Memuat...</td></tr>
               ) : questions.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-8 text-slate-400">Tidak ada pertanyaan kuisioner</td></tr>
+                <tr><td colSpan={9} className="text-center py-8 text-slate-400">Tidak ada pertanyaan untuk kategori {activeCategory}</td></tr>
               ) : (
                 questions.map((q) => (
                   <tr key={q.id}>
                     <td className="font-mono text-center font-bold text-slate-500 w-16">{q.urutan}</td>
+                    <td className="text-xs font-semibold text-teal-700 bg-teal-50/50 rounded px-2 py-1 max-w-[140px] truncate">
+                      {q.section || "Umum"}
+                    </td>
                     <td className="font-medium text-slate-800 max-w-sm whitespace-normal break-words">
                       <div className="flex gap-2">
                         <HelpCircle size={16} className="text-teal-600 shrink-0 mt-0.5" />
                         <span>{q.pertanyaan}</span>
                       </div>
+                    </td>
+                    <td className="text-xs font-semibold text-slate-600">
+                      {q.jurusan ? (
+                        <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded border border-amber-200">
+                          {q.jurusan.namaProdi}
+                        </span>
+                      ) : (
+                        <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                          Global (Semua Prodi)
+                        </span>
+                      )}
                     </td>
                     <td className="text-slate-600 text-sm font-semibold capitalize">{q.tipe === "textarea" ? "Text Panjang" : q.tipe}</td>
                     <td className="text-slate-500 text-xs truncate max-w-xs">{q.opsi || "-"}</td>
@@ -201,7 +252,7 @@ export default function PertanyaanPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
             <div className="flex items-center justify-between mb-4 border-b pb-3">
               <h2 className="text-lg font-bold text-slate-800">
-                {modal.mode === "create" ? "Tambah Pertanyaan" : "Edit Pertanyaan"}
+                {modal.mode === "create" ? `Tambah Pertanyaan (${activeCategory})` : `Edit Pertanyaan (${activeCategory})`}
               </h2>
               <button onClick={closeModal} className="text-slate-400 hover:text-slate-600">
                 <X size={20} />
@@ -210,12 +261,37 @@ export default function PertanyaanPage() {
 
             <form onSubmit={handleSave} className="space-y-4">
               <div>
+                <label className="form-label">Kategori Tracer</label>
+                <select
+                  name="category"
+                  value={form.category}
+                  onChange={handleChange}
+                  className="form-input"
+                >
+                  <option value="DIKTI">Tracer DIKTI (1 Tahun)</option>
+                  <option value="IKU">Tracer IKU (1-5 Tahun CPL)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="form-label">Section / Sub-bagian Kuesioner</label>
+                <input
+                  type="text"
+                  name="section"
+                  value={form.section}
+                  onChange={handleChange}
+                  placeholder="Contoh: Bagian 1: Kompetensi Utama (Hard Skills)"
+                  className="form-input"
+                />
+              </div>
+
+              <div>
                 <label className="form-label">Teks Pertanyaan</label>
                 <textarea
                   name="pertanyaan"
                   value={form.pertanyaan}
                   onChange={handleChange}
-                  placeholder="Contoh: Di mana Anda bekerja saat ini?"
+                  placeholder="Ketik teks pertanyaan..."
                   className="form-input h-20"
                   required
                 />
@@ -230,10 +306,12 @@ export default function PertanyaanPage() {
                     onChange={handleChange}
                     className="form-input"
                   >
-                    <option value="text">Text Pendek</option>
-                    <option value="textarea">Text Panjang</option>
                     <option value="radio">Radio Button (Pilih Satu)</option>
                     <option value="select">Dropdown Select (Pilih Satu)</option>
+                    <option value="checkbox">Checkbox (Bisa Pilih Banyak)</option>
+                    <option value="text">Text Pendek</option>
+                    <option value="textarea">Text Panjang</option>
+                    <option value="label">Penjelasan / Label</option>
                   </select>
                 </div>
 
@@ -259,11 +337,11 @@ export default function PertanyaanPage() {
                     name="opsi"
                     value={form.opsi}
                     onChange={handleChange}
-                    placeholder="Contoh: Ya,Tidak,Belum"
+                    placeholder="Contoh: Sangat Baik,Baik,Cukup,Kurang"
                     className="form-input"
                     required
                   />
-                  <p className="text-xs text-slate-400 mt-1">Gunakan tanda koma (,) tanpa spasi sebagai pemisah</p>
+                  <p className="text-xs text-slate-400 mt-1">Gunakan tanda koma (,) tanpa spasi ekstra sebagai pemisah</p>
                 </div>
               )}
 

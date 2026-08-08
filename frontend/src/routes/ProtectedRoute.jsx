@@ -29,6 +29,7 @@ export default function ProtectedRoute({ children, role }) {
   if (role && userRole !== role) {
     // Redirect ke dashboard yang sesuai role
     if (userRole === "ADMIN") return <Navigate to="/admin/dashboard" replace />;
+    if (userRole === "ADMIN_PRODI") return <Navigate to="/admin-prodi/dashboard" replace />;
     if (userRole === "ALUMNI") return <Navigate to="/alumni/dashboard" replace />;
     return <Navigate to="/login" replace />;
   }

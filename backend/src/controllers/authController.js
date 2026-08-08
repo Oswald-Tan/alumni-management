@@ -22,16 +22,17 @@ const login = async (req, res) => {
     const isEmail = email.includes("@");
 
     if (isEmail) {
-      // Cari sebagai Admin
+      // Cari sebagai Admin beserta Jurusan
       const admin = await prisma.user.findUnique({
         where: { email },
+        include: { jurusan: true },
       });
 
       if (admin) {
         const isMatch = await bcrypt.compare(password, admin.password);
         if (isMatch) {
           user = admin;
-          role = "ADMIN";
+          role = admin.role || "ADMIN";
           name = admin.name;
           userEmail = admin.email;
         }
@@ -64,6 +65,11 @@ const login = async (req, res) => {
     req.session.foto = user.foto || null;
     if (userEmail) req.session.email = userEmail;
     if (userNim) req.session.nim = userNim;
+    // Simpan jurusanId jika admin prodi
+    if (role === "ADMIN_PRODI") {
+      if (user.jurusanId) req.session.jurusanId = user.jurusanId;
+      if (user.jurusan) req.session.jurusan = user.jurusan;
+    }
 
     return res.status(200).json({
       success: true,
@@ -75,6 +81,8 @@ const login = async (req, res) => {
         nim: userNim,
         role: role,
         foto: user.foto || null,
+        jurusanId: user.jurusanId || null,
+        jurusan: user.jurusan || null,
       },
     });
   } catch (error) {
@@ -98,16 +106,19 @@ const logout = (req, res) => {
 const getProfile = async (req, res) => {
   try {
     const role = req.session.role;
-    if (role === "ADMIN") {
+    if (role === "ADMIN" || role === "ADMIN_PRODI") {
       const user = await prisma.user.findUnique({
         where: { id: req.session.userId },
         select: {
           id: true,
           name: true,
           email: true,
+          role: true,
+          jurusanId: true,
           foto: true,
           createdAt: true,
         },
+        ...(role === "ADMIN_PRODI" ? { include: { jurusan: true } } : {}),
       });
 
       if (!user) {
@@ -118,7 +129,7 @@ const getProfile = async (req, res) => {
         success: true,
         data: {
           ...user,
-          role: "ADMIN",
+          role: user.role || "ADMIN",
         },
       });
     } else if (role === "ALUMNI") {
@@ -169,6 +180,8 @@ const checkSession = (req, res) => {
         email: req.session.email || null,
         nim: req.session.nim || null,
         foto: req.session.foto || null,
+        jurusanId: req.session.jurusanId || null,
+        jurusan: req.session.jurusan || null,
       },
     });
   }
@@ -179,7 +192,7 @@ const checkSession = (req, res) => {
 const updateProfileFoto = async (req, res) => {
   try {
     const userId = req.session.userId;
-    if (!userId || req.session.role !== "ADMIN") {
+    if (!userId || (req.session.role !== "ADMIN" && req.session.role !== "ADMIN_PRODI")) {
       if (req.file) {
         try { fs.unlinkSync(req.file.path); } catch (_) {}
       }
@@ -235,7 +248,7 @@ const updateProfileFoto = async (req, res) => {
 const deleteProfileFoto = async (req, res) => {
   try {
     const userId = req.session.userId;
-    if (!userId || req.session.role !== "ADMIN") {
+    if (!userId || (req.session.role !== "ADMIN" && req.session.role !== "ADMIN_PRODI")) {
       return res.status(401).json({ success: false, message: "Hanya admin yang dapat menghapus foto profil ini" });
     }
 

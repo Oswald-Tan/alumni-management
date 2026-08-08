@@ -20,35 +20,24 @@ const navItems = [
   {
     label: "Dashboard",
     icon: LayoutDashboard,
-    path: "/admin/dashboard",
+    path: "/admin-prodi/dashboard",
   },
   {
-    label: "Master Data",
+    label: "Data Alumni",
     icon: BookOpen,
-    children: [
-      { label: "Jurusan & Prodi", path: "/admin/jurusan" },
-      { label: "Data Alumni", path: "/admin/alumni" },
-      { label: "Kelola Admin Prodi", path: "/admin/admin-prodi" },
-    ],
+    path: "/admin-prodi/alumni",
   },
   {
     label: "Tracer Study",
     icon: BarChart3,
     children: [
-      { label: "Periode Tracer", path: "/admin/tracer-periode" },
-      { label: "Pertanyaan Kuisioner", path: "/admin/tracer-pertanyaan" },
-      { label: "Monitoring Hasil", path: "/admin/tracer-hasil" },
-      { label: "Laporan Akreditasi", path: "/admin/tracer-laporan" },
+      { label: "Pertanyaan Kuisioner", path: "/admin-prodi/tracer-pertanyaan" },
+      { label: "Monitoring Hasil", path: "/admin-prodi/tracer-hasil" },
     ],
-  },
-  {
-    label: "Laporan Ijazah",
-    icon: BarChart3,
-    path: "/admin/laporan",
   },
 ];
 
-export default function AdminLayout({ children }) {
+export default function AdminProdiLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -81,26 +70,26 @@ export default function AdminLayout({ children }) {
   return (
     <div className="flex min-h-screen bg-slate-50 flex-col lg:flex-row">
       {/* Mobile Header */}
-      <header className="bg-linear-to-r from-[#1e3a8a] via-[#0ea5e9] to-[#4f46e5] text-white py-4 px-6 flex items-center justify-between lg:hidden border-b border-white/10 sticky top-0 z-20">
+      <header className="bg-linear-to-r from-[#065f46] via-[#059669] to-[#10b981] text-white py-4 px-6 flex items-center justify-between lg:hidden border-b border-white/10 sticky top-0 z-20">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="p-1.5 hover:bg-slate-850 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 hover:bg-emerald-800 rounded-lg text-emerald-200 hover:text-white transition-colors cursor-pointer"
           >
             <Menu size={22} />
           </button>
           <span className="font-extrabold text-sm tracking-wide">
-            SiAlumni Admin
+            SiAlumni Admin Prodi
           </span>
         </div>
         {user?.foto ? (
           <img
             src={`http://localhost:5000/uploads/foto/${user.foto}`}
             alt="Avatar"
-            className="w-8 h-8 rounded-full object-cover shadow-md shadow-blue-900/20"
+            className="w-8 h-8 rounded-full object-cover shadow-md shadow-emerald-900/20"
           />
         ) : (
-          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md shadow-blue-500/25">
+          <div className="w-8 h-8 bg-emerald-700 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md shadow-emerald-700/25">
             {user?.name?.charAt(0) || "A"}
           </div>
         )}
@@ -115,18 +104,18 @@ export default function AdminLayout({ children }) {
       )}
 
       {/* Sidebar */}
-      <aside className={`sidebar sidebar-admin ${isSidebarOpen ? "open" : ""}`}>
+      <aside className={`sidebar sidebar-admin-prodi ${isSidebarOpen ? "open" : ""}`}>
         {/* Logo */}
         <div className="sidebar-logo flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center">
+            <div className="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center">
               <GraduationCap size={20} className="text-white" />
             </div>
             <div>
               <p className="text-white text-sm font-bold leading-tight">
                 SiAlumni
               </p>
-              <p className="text-blue-200/80 text-xs">Politeknik Negeri Manado</p>
+              <p className="text-emerald-200/80 text-xs">Admin Prodi</p>
             </div>
           </div>
           <button
@@ -200,7 +189,7 @@ export default function AdminLayout({ children }) {
         {/* User & Logout */}
         <div className="border-t border-white/15 p-4">
           <Link
-            to="/admin/profil"
+            to="/admin-prodi/profil"
             className="flex items-center gap-3 mb-3 hover:opacity-80 transition-opacity"
           >
             {user?.foto ? (
@@ -210,15 +199,20 @@ export default function AdminLayout({ children }) {
                 className="w-8 h-8 rounded-full object-cover shrink-0"
               />
             ) : (
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0">
+              <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0">
                 {user?.name?.charAt(0) || "A"}
               </div>
             )}
             <div className="flex-1 min-w-0">
               <p className="text-white text-sm font-medium truncate">
-                {user?.name || "Admin"}
+                {user?.name || "Admin Prodi"}
               </p>
-              <p className="text-blue-200/80 text-xs truncate">{user?.email}</p>
+              {user?.jurusan && (
+                <p className="text-emerald-300 text-[10px] font-semibold uppercase tracking-wider truncate">
+                  {user.jurusan.namaProdi}
+                </p>
+              )}
+              <p className="text-emerald-200/60 text-xs truncate mt-0.5">{user?.email}</p>
             </div>
           </Link>
           <div

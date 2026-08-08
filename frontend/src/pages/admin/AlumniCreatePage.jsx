@@ -4,9 +4,13 @@ import { ArrowLeft, Save } from "lucide-react";
 import { createAlumni } from "../../services/alumniService";
 import { getJurusan } from "../../services/jurusanService";
 import { toast } from "react-toastify";
+import { useSelector } from "react-redux";
+import { selectUser } from "../../features/auth/authSlice";
 
 export default function AlumniCreatePage() {
   const navigate = useNavigate();
+  const user = useSelector(selectUser);
+  const isProdiAdmin = user?.role === "ADMIN_PRODI";
   const [jurusanList, setJurusanList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [form, setForm] = useState({
@@ -20,8 +24,14 @@ export default function AlumniCreatePage() {
   });
 
   useEffect(() => {
-    getJurusan().then((res) => setJurusanList(res.data.data));
-  }, []);
+    getJurusan().then((res) => {
+      const data = res.data.data;
+      setJurusanList(data);
+      if (isProdiAdmin && user?.jurusanId) {
+        setForm((prev) => ({ ...prev, jurusanId: user.jurusanId.toString() }));
+      }
+    });
+  }, [isProdiAdmin, user]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -31,9 +41,14 @@ export default function AlumniCreatePage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await createAlumni(form);
+      // Pastikan jurusanId terisi dengan benar untuk admin prodi
+      const payload = {
+        ...form,
+        jurusanId: isProdiAdmin ? user.jurusanId.toString() : form.jurusanId
+      };
+      await createAlumni(payload);
       toast.success("Alumni berhasil ditambahkan");
-      navigate("/admin/alumni");
+      navigate(isProdiAdmin ? "/admin-prodi/alumni" : "/admin/alumni");
     } catch (err) {
       toast.error(err.response?.data?.message || "Gagal menambahkan alumni");
     } finally {
@@ -44,7 +59,7 @@ export default function AlumniCreatePage() {
   return (
     <div className="p-8">
       <div className="flex items-center gap-4 mb-6">
-        <Link to="/admin/alumni" className="btn-secondary py-2 px-3">
+        <Link to={isProdiAdmin ? "/admin-prodi/alumni" : "/admin/alumni"} className="btn-secondary py-2 px-3">
           <ArrowLeft size={16} />
         </Link>
         <div>
@@ -94,8 +109,9 @@ export default function AlumniCreatePage() {
               name="jurusanId"
               value={form.jurusanId}
               onChange={handleChange}
-              className="form-select"
+              className="form-select disabled:bg-slate-50 disabled:text-slate-500"
               required
+              disabled={isProdiAdmin}
             >
               <option value="">-- Pilih Jurusan / Program Studi --</option>
               {jurusanList.map((j) => (
@@ -158,7 +174,7 @@ export default function AlumniCreatePage() {
               <Save size={16} />
               {isLoading ? "Menyimpan..." : "Simpan Alumni"}
             </button>
-            <Link to="/admin/alumni" className="btn-secondary">
+            <Link to={isProdiAdmin ? "/admin-prodi/alumni" : "/admin/alumni"} className="btn-secondary">
               Batal
             </Link>
           </div>

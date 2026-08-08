@@ -1,18 +1,15 @@
 import { useEffect, useState } from "react";
 import { Search, ClipboardList, CheckCircle, XCircle, Eye, X, Download } from "lucide-react";
-import { getMonitoring, getPeriods, getAlumniResponseDetail, exportTracerExcel } from "../../../services/tracerService";
-import { getJurusan } from "../../../services/jurusanService";
+import { getMonitoring, getPeriods, getAlumniResponseDetail, exportTracerExcel } from "../../services/tracerService";
 import { toast } from "react-toastify";
 
 export default function HasilPage() {
   const [results, setResults] = useState([]);
   const [periods, setPeriods] = useState([]);
-  const [jurusanList, setJurusanList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState({
     periodId: "",
-    jurusanId: "",
     status: "",
     category: "",
   });
@@ -27,14 +24,9 @@ export default function HasilPage() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [periodsRes, jurusanRes] = await Promise.all([
-        getPeriods(),
-        getJurusan(),
-      ]);
-
+      const periodsRes = await getPeriods();
       const periodList = periodsRes.data.data;
       setPeriods(periodList);
-      setJurusanList(jurusanRes.data.data);
 
       const active = periodList.find((p) => p.status === "Aktif");
       const defaultPeriodId = active ? active.id : (periodList[0]?.id || "");
@@ -46,7 +38,6 @@ export default function HasilPage() {
 
       const monitorRes = await getMonitoring({
         periodId: filter.periodId || defaultPeriodId,
-        jurusanId: filter.jurusanId,
         status: filter.status,
         category: filter.category,
       });
@@ -60,7 +51,7 @@ export default function HasilPage() {
 
   useEffect(() => {
     fetchData();
-  }, [filter.periodId, filter.jurusanId, filter.status, filter.category]);
+  }, [filter.periodId, filter.status, filter.category]);
 
   const handleFilterChange = (e) => {
     setFilter({ ...filter, [e.target.name]: e.target.value });
@@ -108,7 +99,7 @@ export default function HasilPage() {
       <div className="page-header flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="page-title">Monitoring Hasil Tracer Study</h1>
-          <p className="page-subtitle">Pantau alumni yang sudah atau belum mengisi kuesioner Tracer DIKTI & IKU</p>
+          <p className="page-subtitle">Pantau alumni prodi yang sudah atau belum mengisi kuesioner Tracer DIKTI & IKU</p>
         </div>
         <button onClick={handleExportExcel} className="btn-primary bg-emerald-600 hover:bg-emerald-700 shrink-0 self-start md:self-auto">
           <Download size={16} />
@@ -118,7 +109,7 @@ export default function HasilPage() {
 
       {/* Filter Card */}
       <div className="card mb-4">
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
           <div>
             <label className="form-label">Periode Tracer</label>
             <select
@@ -146,23 +137,6 @@ export default function HasilPage() {
               <option value="">Semua Kategori (DIKTI & IKU)</option>
               <option value="DIKTI">DIKTI (1 Tahun)</option>
               <option value="IKU">IKU (1-5 Tahun CPL)</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="form-label">Jurusan / Program Studi</label>
-            <select
-              name="jurusanId"
-              value={filter.jurusanId}
-              onChange={handleFilterChange}
-              className="form-select"
-            >
-              <option value="">Semua Jurusan / Prodi</option>
-              {jurusanList.map((j) => (
-                <option key={j.id} value={j.id}>
-                  {j.namaJurusan} / {j.namaProdi}
-                </option>
-              ))}
             </select>
           </div>
 

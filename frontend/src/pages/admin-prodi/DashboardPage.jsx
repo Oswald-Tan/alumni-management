@@ -1,0 +1,232 @@
+import { useEffect, useState } from "react";
+import { Users, BookOpen, ClipboardList, ShieldAlert, Briefcase } from "lucide-react";
+import { getDashboard } from "../../services/dashboardService";
+import { toast } from "react-toastify";
+import { useSelector } from "react-redux";
+import { selectUser } from "../../features/auth/authSlice";
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend
+} from "recharts";
+
+const TRACER_COLORS = ["#10b981", "#f97316"];
+const KESESUAIAN_COLORS = ["#10b981", "#ef4444"];
+const LOKASI_COLORS = ["#14b8a6", "#f59e0b"];
+
+export default function AdminProdiDashboard() {
+  const user = useSelector(selectUser);
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await getDashboard();
+        setData(res.data.data);
+      } catch {
+        toast.error("Gagal memuat data dashboard");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="p-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-slate-200 rounded w-48" />
+          <div className="grid grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-28 bg-slate-200 rounded-2xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const stats = [
+    {
+      label: "Total Alumni Prodi",
+      value: data?.totalAlumni || 0,
+      icon: Users,
+      bg: "bg-emerald-50",
+      text: "text-emerald-600",
+    },
+    {
+      label: "Ijazah Diambil",
+      value: data?.sudahAmbilIjazah || 0,
+      icon: BookOpen,
+      bg: "bg-green-50",
+      text: "text-green-600",
+    },
+    {
+      label: "Belum Ambil Ijazah",
+      value: data?.belumAmbilIjazah || 0,
+      icon: ClipboardList,
+      bg: "bg-orange-50",
+      text: "text-orange-600",
+    },
+  ];
+
+  const pieDataTracer = [
+    { name: "Sudah Mengisi", value: data?.tracerStats?.sudahMengisi || 0 },
+    { name: "Belum Mengisi", value: data?.tracerStats?.belumMengisi || 0 },
+  ];
+
+  const pieDataKesesuaian = data?.pekerjaanStats?.kesesuaianBidang || [];
+  const pieDataLokasi = data?.pekerjaanStats?.lokasiKerja || [];
+
+  return (
+    <div className="p-8">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="page-title">Dashboard Admin Prodi</h1>
+        <p className="page-subtitle">
+          Selamat datang, {user?.name || "Admin Prodi"}
+        </p>
+      </div>
+
+      {/* Banner */}
+      <div className="bg-linear-to-r from-emerald-600 to-teal-700 rounded-3xl p-8 text-white mb-8 shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20" />
+        <div className="relative z-10">
+          <h2 className="text-xs uppercase tracking-wider text-emerald-200 font-extrabold mb-1">Admin Prodi</h2>
+          <p className="text-xl font-extrabold mb-3 leading-snug">
+            Panel Pengelolaan Data Alumni Program Studi
+          </p>
+          <div className="border-t border-white/10 pt-4 mt-4">
+            <p className="text-emerald-100 text-xs sm:text-sm leading-relaxed">
+              <span className="font-bold text-white uppercase tracking-wider text-[10px] bg-emerald-500 px-2.5 py-0.5 rounded-full mr-2">Hak Akses</span>
+              Anda dapat melihat data alumni, mengelola pertanyaan tracer study, dan memonitor hasil pengisian kuisioner.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        {stats.map((s) => {
+          const Icon = s.icon;
+          return (
+            <div key={s.label} className="stat-card">
+              <div className={`w-12 h-12 ${s.bg} rounded-xl flex items-center justify-center shrink-0`}>
+                <Icon size={24} className={s.text} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-slate-800">{s.value.toLocaleString()}</p>
+                <p className="text-sm text-slate-500">{s.label}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Tracer Study Stats */}
+        {data?.tracerStats && data.tracerStats.status === "Aktif" && (
+          <div className="card shadow-md border border-slate-100 p-6 flex flex-col">
+            <div className="flex items-center gap-3 mb-4 border-b pb-3">
+              <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center shrink-0">
+                <ClipboardList size={20} />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-800">Pengisian Tracer Study</h2>
+                <p className="text-xs text-slate-500">{data.tracerStats.namaPeriodeAktif}</p>
+              </div>
+            </div>
+            <div className="flex-1 flex items-center justify-center min-h-[260px]">
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie data={pieDataTracer} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
+                    {pieDataTracer.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={TRACER_COLORS[index % TRACER_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mt-4">
+              <div className="p-3 bg-teal-50/50 rounded-xl border border-teal-100 text-center">
+                <p className="text-teal-600 text-xs font-semibold uppercase">Sudah Mengisi</p>
+                <p className="text-xl font-bold text-teal-700 mt-1">{data.tracerStats.sudahMengisi}</p>
+              </div>
+              <div className="p-3 bg-orange-50/50 rounded-xl border border-orange-100 text-center">
+                <p className="text-orange-600 text-xs font-semibold uppercase">Belum Mengisi</p>
+                <p className="text-xl font-bold text-orange-700 mt-1">{data.tracerStats.belumMengisi}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Kesesuaian Bidang */}
+        {data?.pekerjaanStats && (
+          <div className="card shadow-md border border-slate-100 p-6 flex flex-col">
+            <h2 className="text-sm font-bold text-slate-800 mb-1">Kesesuaian Bidang Kerja</h2>
+            <p className="text-xs text-slate-400 mb-4">Persentase kesesuaian pekerjaan dengan program studi alumni</p>
+            <div className="flex-1 flex items-center justify-center min-h-[260px]">
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={pieDataKesesuaian}>
+                  <XAxis dataKey="name" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip formatter={(value) => [`${value} Orang`, "Jumlah Alumni"]} />
+                  <Bar dataKey="value" name="Jumlah Alumni" fill="#10b981" radius={[4, 4, 0, 0]}>
+                    {pieDataKesesuaian.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={KESESUAIAN_COLORS[index % KESESUAIAN_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* Lokasi Kerja */}
+        {data?.pekerjaanStats && (
+          <div className="card shadow-md border border-slate-100 p-6 flex flex-col">
+            <h2 className="text-sm font-bold text-slate-800 mb-1">Lokasi Kerja Alumni</h2>
+            <p className="text-xs text-slate-400 mb-4">Distribusi alumni yang bekerja di dalam negeri dan luar negeri</p>
+            <div className="flex-1 flex items-center justify-center min-h-[260px]">
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={pieDataLokasi}>
+                  <XAxis dataKey="name" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip formatter={(value) => [`${value} Orang`, "Jumlah Alumni"]} />
+                  <Bar dataKey="value" name="Jumlah Alumni" fill="#14b8a6" radius={[4, 4, 0, 0]}>
+                    {pieDataLokasi.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={LOKASI_COLORS[index % LOKASI_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* No active period */}
+      {data?.tracerStats && data.tracerStats.status !== "Aktif" && (
+        <div className="card shadow-md border border-slate-100 p-6 mb-8">
+          <div className="p-8 text-center bg-slate-50 border border-dashed rounded-2xl flex flex-col items-center">
+            <ShieldAlert size={36} className="text-slate-400 mb-2" />
+            <p className="text-sm font-semibold text-slate-700">Tidak Ada Periode Tracer Study yang Aktif</p>
+            <p className="text-xs text-slate-500 mt-0.5">Hubungi admin utama untuk mengaktifkan periode tracer study.</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

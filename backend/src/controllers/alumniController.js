@@ -49,7 +49,12 @@ const getAll = async (req, res) => {
         { nomorIjazah: { contains: search } },
       ];
     }
-    if (jurusanId) where.jurusanId = parseInt(jurusanId);
+    // Admin Prodi: otomatis filter berdasarkan jurusan
+    if (req.session.role === "ADMIN_PRODI" && req.session.jurusanId) {
+      where.jurusanId = req.session.jurusanId;
+    } else if (jurusanId) {
+      where.jurusanId = parseInt(jurusanId);
+    }
 
     // Filter by derived status
     if (status) {
@@ -138,7 +143,12 @@ const create = async (req, res) => {
   try {
     const { nim, nama, jurusanId, tanggalWisuda, tanggalKelulusan, nomorIjazah, tanggalPengambilanIjazah, password } = req.body;
 
-    if (!nim || !nama || !jurusanId) {
+    let targetJurusanId = jurusanId;
+    if (req.session.role === "ADMIN_PRODI" && req.session.jurusanId) {
+      targetJurusanId = req.session.jurusanId;
+    }
+
+    if (!nim || !nama || !targetJurusanId) {
       return res.status(400).json({ success: false, message: "NIM, nama, dan Jurusan/Program Studi wajib diisi" });
     }
 
@@ -157,7 +167,7 @@ const create = async (req, res) => {
         nim,
         nama,
         password: hashedPassword,
-        jurusanId: parseInt(jurusanId),
+        jurusanId: parseInt(targetJurusanId),
         tanggalWisuda: tanggalWisuda ? new Date(tanggalWisuda) : null,
         tanggalKelulusan: tanggalKelulusan ? new Date(tanggalKelulusan) : null,
         nomorIjazah: nomorIjazah || null,
@@ -211,7 +221,11 @@ const update = async (req, res) => {
 
       updateData.nama = nama;
       updateData.nim = nim;
-      updateData.jurusanId = jurusanId ? parseInt(jurusanId) : undefined;
+      if (req.session.role === "ADMIN_PRODI") {
+        updateData.jurusanId = req.session.jurusanId;
+      } else {
+        updateData.jurusanId = jurusanId ? parseInt(jurusanId) : undefined;
+      }
       updateData.tanggalWisuda = tanggalWisuda !== undefined ? (tanggalWisuda ? new Date(tanggalWisuda) : null) : undefined;
       updateData.tanggalKelulusan = tanggalKelulusan !== undefined ? (tanggalKelulusan ? new Date(tanggalKelulusan) : null) : undefined;
       updateData.nomorIjazah = nomorIjazah !== undefined ? (nomorIjazah || null) : undefined;

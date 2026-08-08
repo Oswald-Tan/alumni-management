@@ -26,6 +26,7 @@ const COLORS = ["#3b82f6", "#64748b", "#a855f7", "#22c55e"]; // Blue, Slate, Pur
 const TRACER_COLORS = ["#10b981", "#f97316"]; // Green, Orange
 const KESESUAIAN_COLORS = ["#10b981", "#ef4444"]; // Green, Red
 const KERJA_COLORS = ["#0ea5e9", "#f59e0b", "#64748b"]; // Sky Blue, Orange, Slate
+const LOKASI_COLORS = ["#14b8a6", "#f59e0b"]; // Teal, Amber
 
 export default function AdminDashboard() {
   const [data, setData] = useState(null);
@@ -112,6 +113,7 @@ export default function AdminDashboard() {
   // Data Pekerjaan
   const pieDataKesesuaian = data?.pekerjaanStats?.kesesuaianBidang || [];
   const pieDataKerja = data?.pekerjaanStats?.statusPekerjaan || [];
+  const pieDataLokasi = data?.pekerjaanStats?.lokasiKerja || [];
   const barDataWaktuTunggu = data?.pekerjaanStats?.waktuTungguPerProdi?.map((p) => ({
     name: p.namaProdi.split("/")[1]?.trim() || p.namaProdi,
     "Waktu Tunggu (Bulan)": p.rataWaktuTunggu,
@@ -303,23 +305,16 @@ export default function AdminDashboard() {
               <p className="text-xs text-slate-400 mb-4">Persentase kesesuaian pekerjaan dengan program studi alumni</p>
               <div className="flex-1 flex items-center justify-center min-h-[300px]">
                 <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={pieDataKesesuaian}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={65}
-                      outerRadius={90}
-                      paddingAngle={4}
-                      dataKey="value"
-                    >
+                  <BarChart data={pieDataKesesuaian}>
+                    <XAxis dataKey="name" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip formatter={(value) => [`${value} Orang`, "Jumlah Alumni"]} />
+                    <Bar dataKey="value" name="Jumlah Alumni" fill="#10b981" radius={[4, 4, 0, 0]}>
                       {pieDataKesesuaian.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={KESESUAIAN_COLORS[index % KESESUAIAN_COLORS.length]} />
                       ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend layout="horizontal" verticalAlign="bottom" align="center" iconSize={10} />
-                  </PieChart>
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
@@ -330,23 +325,36 @@ export default function AdminDashboard() {
               <p className="text-xs text-slate-400 mb-4">Distribusi status kepegawaian alumni Polimdo secara keseluruhan</p>
               <div className="flex-1 flex items-center justify-center min-h-[300px]">
                 <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={pieDataKerja}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={65}
-                      outerRadius={90}
-                      paddingAngle={4}
-                      dataKey="value"
-                    >
+                  <BarChart data={pieDataKerja}>
+                    <XAxis dataKey="name" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip formatter={(value) => [`${value} Orang`, "Jumlah Alumni"]} />
+                    <Bar dataKey="value" name="Jumlah Alumni" fill="#0ea5e9" radius={[4, 4, 0, 0]}>
                       {pieDataKerja.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={KERJA_COLORS[index % KERJA_COLORS.length]} />
                       ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend layout="horizontal" verticalAlign="bottom" align="center" iconSize={10} />
-                  </PieChart>
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Chart: Lokasi Kerja (DN / LN) */}
+            <div className="card shadow-md border border-slate-100 p-6 flex flex-col">
+              <h2 className="text-sm font-bold text-slate-800 mb-1">Lokasi Kerja Alumni</h2>
+              <p className="text-xs text-slate-400 mb-4">Distribusi alumni yang bekerja di dalam negeri dan luar negeri</p>
+              <div className="flex-1 flex items-center justify-center min-h-[300px]">
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={pieDataLokasi}>
+                    <XAxis dataKey="name" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip formatter={(value) => [`${value} Orang`, "Jumlah Alumni"]} />
+                    <Bar dataKey="value" name="Jumlah Alumni" fill="#14b8a6" radius={[4, 4, 0, 0]}>
+                      {pieDataLokasi.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={LOKASI_COLORS[index % LOKASI_COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>

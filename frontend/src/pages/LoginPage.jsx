@@ -32,6 +32,8 @@ export default function LoginPage() {
       toast.success(`Selamat datang, ${user.name}!`);
       if (user.role === "ADMIN") {
         navigate("/admin/dashboard");
+      } else if (user.role === "ADMIN_PRODI") {
+        navigate("/admin-prodi/dashboard");
       } else {
         navigate("/alumni/dashboard");
       }
@@ -59,9 +61,12 @@ export default function LoginPage() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-600/40">
               <GraduationCap size={32} className="text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-white leading-tight">SiAlumni Polimdo</h1>
+            <h1 className="text-2xl font-bold text-white leading-tight">
+              SiAlumni Polimdo
+            </h1>
             <p className="text-slate-300 text-xs mt-3 font-medium border-t border-b border-white/10 py-2.5 px-1 leading-relaxed">
-              Rancang Bangun Aplikasi Pengelolaan Data Alumni untuk Mendukung Administrasi Akademik di Politeknik Negeri Manado
+              Rancang Bangun Aplikasi Pengelolaan Data Alumni untuk Mendukung
+              Administrasi Akademik di Politeknik Negeri Manado
             </p>
           </div>
 
@@ -126,7 +131,7 @@ export default function LoginPage() {
           </form>
 
           {/* Info */}
-          <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10">
+          {/* <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10">
             <p className="text-xs text-slate-400 font-medium mb-2">Akun Demo:</p>
             <div className="space-y-1 text-xs text-slate-500">
               <p>
@@ -136,7 +141,7 @@ export default function LoginPage() {
                 <span className="text-slate-400">Alumni:</span> 2020714001 / 2020714001
               </p>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

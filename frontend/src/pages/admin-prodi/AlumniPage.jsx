@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
-import { Plus, Search, Pencil, Trash2, Eye, X } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Search, Eye, X, Plus, Pencil, Trash2 } from "lucide-react";
 import { getAlumni, deleteAlumni } from "../../services/alumniService";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../components/ConfirmModal";
@@ -19,13 +19,13 @@ const statusBadge = {
   IJAZAH_DIAMBIL: "badge-green",
 };
 
-export default function AlumniPage() {
+export default function AdminProdiAlumniPage() {
   const [alumni, setAlumni] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, total: 0, totalPages: 1 });
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedAlumni, setSelectedAlumni] = useState(null); // Detail modal state
+  const [selectedAlumni, setSelectedAlumni] = useState(null);
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     title: "",
@@ -57,18 +57,18 @@ export default function AlumniPage() {
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
-  const handleDelete = (id, nama) => {
+  const handleDelete = (id, name) => {
     setConfirmModal({
       isOpen: true,
       title: "Hapus Alumni",
-      message: `Apakah Anda yakin ingin menghapus alumni "${nama}"? Data tidak dapat dikembalikan.`,
+      message: `Apakah Anda yakin ingin menghapus data alumni "${name}"? Tindakan ini tidak dapat dibatalkan.`,
       onConfirm: async () => {
         try {
           await deleteAlumni(id);
-          toast.success("Alumni berhasil dihapus");
+          toast.success("Data alumni berhasil dihapus");
           fetchAlumni();
         } catch (err) {
-          toast.error(err.response?.data?.message || "Gagal menghapus");
+          toast.error(err.response?.data?.message || "Gagal menghapus alumni");
         }
       },
     });
@@ -78,10 +78,10 @@ export default function AlumniPage() {
     <div className="p-8">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Data Alumni</h1>
-          <p className="page-subtitle">Total {pagination.total} alumni terdaftar</p>
+          <h1 className="page-title">Data Alumni Prodi</h1>
+          <p className="page-subtitle">Total {pagination.total} alumni terdaftar di program studi Anda</p>
         </div>
-        <Link to="/admin/alumni/create" className="btn-primary">
+        <Link to="/admin-prodi/alumni/create" className="btn-primary bg-emerald-600 hover:bg-emerald-700">
           <Plus size={16} />
           Tambah Alumni
         </Link>
@@ -94,13 +94,13 @@ export default function AlumniPage() {
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Cari nama / NIM / No Ijazah..."
+              placeholder="Cari nama / NIM..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="form-input pl-9"
             />
           </div>
-          <button type="submit" className="btn-primary">Cari</button>
+          <button type="submit" className="btn-primary bg-emerald-600 hover:bg-emerald-700">Cari</button>
         </form>
 
         {/* Table */}
@@ -115,16 +115,15 @@ export default function AlumniPage() {
                 <th>Jurusan / Prodi</th>
                 <th>Kelulusan</th>
                 <th>No Ijazah</th>
-                <th>Pengambilan</th>
                 <th>Status</th>
                 <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={10} className="text-center py-10 text-slate-400">Memuat...</td></tr>
+                <tr><td colSpan={9} className="text-center py-10 text-slate-400">Memuat...</td></tr>
               ) : alumni.length === 0 ? (
-                <tr><td colSpan={10} className="text-center py-10 text-slate-400">Tidak ada data alumni</td></tr>
+                <tr><td colSpan={9} className="text-center py-10 text-slate-400">Tidak ada data alumni</td></tr>
               ) : (
                 alumni.map((a, idx) => (
                   <tr key={a.id}>
@@ -137,7 +136,7 @@ export default function AlumniPage() {
                           className="w-8 h-8 rounded-full object-cover border border-slate-200"
                         />
                       ) : (
-                        <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold">
+                        <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xs font-bold">
                           {a.nama?.charAt(0) || "?"}
                         </div>
                       )}
@@ -153,11 +152,6 @@ export default function AlumniPage() {
                         : "-"}
                     </td>
                     <td className="font-mono text-sm">{a.nomorIjazah || "-"}</td>
-                    <td className="text-slate-500 text-sm">
-                      {a.tanggalPengambilanIjazah
-                        ? new Date(a.tanggalPengambilanIjazah).toLocaleDateString("id-ID")
-                        : "-"}
-                    </td>
                     <td>
                       <span className={`badge ${statusBadge[a.statusAlumni]}`}>
                         {statusLabel[a.statusAlumni]}
@@ -167,17 +161,21 @@ export default function AlumniPage() {
                       <div className="flex gap-1.5">
                         <button
                           onClick={() => setSelectedAlumni(a)}
-                          className="btn-secondary py-1.5 px-3 bg-blue-50 text-blue-600 hover:bg-blue-100 border-none"
+                          className="btn-secondary py-1.5 px-3 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-none"
                           title="Detail"
                         >
                           <Eye size={14} />
                         </button>
-                        <Link to={`/admin/alumni/edit/${a.id}`} className="btn-secondary py-1.5 px-3" title="Edit">
-                          <Pencil size={14} />
+                        <Link
+                          to={`/admin-prodi/alumni/edit/${a.id}`}
+                          className="btn-secondary py-1.5 px-3 hover:bg-slate-200 border-none flex items-center justify-center"
+                          title="Edit"
+                        >
+                          <Pencil size={14} className="text-slate-600" />
                         </Link>
                         <button
                           onClick={() => handleDelete(a.id, a.nama)}
-                          className="btn-danger py-1.5 px-3"
+                          className="btn-danger py-1.5 px-3 bg-red-50 text-red-600 hover:bg-red-100 border-none"
                           title="Hapus"
                         >
                           <Trash2 size={14} />
@@ -227,7 +225,7 @@ export default function AlumniPage() {
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               {/* Foto Alumni */}
               <div className="flex justify-center mb-2">
@@ -238,7 +236,7 @@ export default function AlumniPage() {
                     className="w-20 h-20 rounded-full object-cover border-2 border-slate-200 shadow-md"
                   />
                 ) : (
-                  <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl font-bold border-2 border-slate-200">
+                  <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-2xl font-bold border-2 border-slate-200">
                     {selectedAlumni.nama?.charAt(0) || "?"}
                   </div>
                 )}
@@ -277,44 +275,13 @@ export default function AlumniPage() {
                   <p className="text-xs text-slate-400 font-semibold uppercase">Tanggal Kelulusan</p>
                   <p className="text-sm text-slate-700">
                     {selectedAlumni.tanggalKelulusan
-                      ? new Date(selectedAlumni.tanggalKelulusan).toLocaleDateString("id-ID", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })
+                      ? new Date(selectedAlumni.tanggalKelulusan).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
                       : "-"}
                   </p>
                 </div>
-                <div>
-                  <p className="text-xs text-slate-400 font-semibold uppercase">Tanggal Wisuda</p>
-                  <p className="text-sm text-slate-700">
-                    {selectedAlumni.tanggalWisuda
-                      ? new Date(selectedAlumni.tanggalWisuda).toLocaleDateString("id-ID", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })
-                      : "-"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-slate-400 font-semibold uppercase">Nomor Ijazah</p>
                   <p className="text-sm font-mono text-slate-700">{selectedAlumni.nomorIjazah || "-"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 font-semibold uppercase">Tanggal Pengambilan Ijazah</p>
-                  <p className="text-sm text-slate-700">
-                    {selectedAlumni.tanggalPengambilanIjazah
-                      ? new Date(selectedAlumni.tanggalPengambilanIjazah).toLocaleDateString("id-ID", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })
-                      : "-"}
-                  </p>
                 </div>
               </div>
             </div>

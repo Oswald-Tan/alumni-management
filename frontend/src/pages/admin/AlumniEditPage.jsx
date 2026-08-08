@@ -4,10 +4,15 @@ import { ArrowLeft, Save } from "lucide-react";
 import { getAlumniById, updateAlumni } from "../../services/alumniService";
 import { getJurusan } from "../../services/jurusanService";
 import { toast } from "react-toastify";
+import { useSelector } from "react-redux";
+import { selectUser } from "../../features/auth/authSlice";
 
 export default function AlumniEditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const user = useSelector(selectUser);
+  const backPath = user?.role === "ADMIN_PRODI" ? "/admin-prodi/alumni" : "/admin/alumni";
+
   const [jurusanList, setJurusanList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
@@ -40,10 +45,10 @@ export default function AlumniEditPage() {
       })
       .catch(() => {
         toast.error("Gagal memuat data alumni");
-        navigate("/admin/alumni");
+        navigate(backPath);
       })
       .finally(() => setIsFetching(false));
-  }, [id, navigate]);
+  }, [id, navigate, backPath]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -52,10 +57,15 @@ export default function AlumniEditPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    const isProdiAdmin = user?.role === "ADMIN_PRODI";
     try {
-      await updateAlumni(id, form);
+      const payload = {
+        ...form,
+        jurusanId: isProdiAdmin ? user.jurusanId.toString() : form.jurusanId
+      };
+      await updateAlumni(id, payload);
       toast.success("Data alumni berhasil diupdate");
-      navigate("/admin/alumni");
+      navigate(backPath);
     } catch (err) {
       toast.error(err.response?.data?.message || "Gagal mengupdate alumni");
     } finally {
@@ -74,7 +84,7 @@ export default function AlumniEditPage() {
   return (
     <div className="p-8">
       <div className="flex items-center gap-4 mb-6">
-        <Link to="/admin/alumni" className="btn-secondary py-2 px-3">
+        <Link to={backPath} className="btn-secondary py-2 px-3">
           <ArrowLeft size={16} />
         </Link>
         <div>
@@ -197,7 +207,7 @@ export default function AlumniEditPage() {
               <Save size={16} />
               {isLoading ? "Menyimpan..." : "Update Alumni"}
             </button>
-            <Link to="/admin/alumni" className="btn-secondary">
+            <Link to={backPath} className="btn-secondary">
               Batal
             </Link>
           </div>

@@ -84,6 +84,8 @@ const getDashboard = async (req, res) => {
     let tetapCount = 0;
     let kontrakCount = 0;
     let belumBekerjaCount = 0;
+    let dalamNegeriCount = 0;
+    let luarNegeriCount = 0;
 
     const waktuTungguPerJurusan = {}; // jurusanId -> { totalWaktu: X, count: Y }
 
@@ -102,6 +104,13 @@ const getDashboard = async (req, res) => {
           tetapCount++;
         } else {
           kontrakCount++; // default/lainnya dianggap kontrak
+        }
+
+        // Hitung lokasi kerja
+        if (latestJob.lokasiKerja === "Luar Negeri") {
+          luarNegeriCount++;
+        } else {
+          dalamNegeriCount++;
         }
 
         const jId = alumni.jurusanId;
@@ -189,6 +198,10 @@ const getDashboard = async (req, res) => {
             { name: "Tetap", value: tetapCount },
             { name: "Kontrak", value: kontrakCount },
             { name: "Belum Bekerja", value: belumBekerjaCount },
+          ],
+          lokasiKerja: [
+            { name: "Dalam Negeri", value: dalamNegeriCount },
+            { name: "Luar Negeri", value: luarNegeriCount },
           ],
           waktuTungguPerProdi: waktuTungguPerProdiFormatted,
         },

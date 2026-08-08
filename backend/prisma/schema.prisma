@@ -15,9 +15,13 @@ model User {
   name      String
   email     String   @unique
   password  String
+  role      String   @default("ADMIN") @map("role") // ADMIN / ADMIN_PRODI
+  jurusanId Int?     @map("jurusan_id")
   foto      String?  @db.VarChar(255)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
+  jurusan   Jurusan? @relation(fields: [jurusanId], references: [id], onDelete: SetNull)
 
   @@map("users")
 }
@@ -32,6 +36,8 @@ model Jurusan {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   alumni Alumni[]
+  users  User[]
+  tracerQuestions TracerQuestion[]
 
   @@map("jurusan")
 }
@@ -72,6 +78,7 @@ model TracerPeriod {
   tanggalSelesai DateTime         @map("tanggal_selesai")
   status         String           @map("status") // Aktif / Tidak Aktif
   modePengisian  String           @map("mode_pengisian") // Semua / Ganjil / Genap
+  category       String           @default("SEMUA") @map("category") // DIKTI / IKU / SEMUA
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
   responses      TracerResponse[]
@@ -87,8 +94,13 @@ model TracerQuestion {
   isRequired Boolean        @default(true) @map("is_required")
   urutan     Int            @default(0) @map("urutan")
   isActive   Boolean        @default(true) @map("is_active")
+  category   String         @default("DIKTI") @map("category") // DIKTI / IKU
+  section    String?        @map("section") // Section/Bagian CPL/Kuesioner
+  jurusanId  Int?           @map("jurusan_id")
   createdAt  DateTime       @default(now()) @map("created_at")
   updatedAt  DateTime       @updatedAt @map("updated_at")
+
+  jurusan    Jurusan?       @relation(fields: [jurusanId], references: [id], onDelete: SetNull)
   answers    TracerAnswer[]
 
   @@map("tracer_questions")
@@ -98,6 +110,7 @@ model TracerResponse {
   id             Int            @id @default(autoincrement())
   tracerPeriodId Int            @map("tracer_period_id")
   alumniId       Int            @map("alumni_id")
+  category       String         @default("DIKTI") @map("category") // DIKTI / IKU
   submittedAt    DateTime       @default(now()) @map("submitted_at")
   period         TracerPeriod   @relation(fields: [tracerPeriodId], references: [id], onDelete: Cascade)
   alumni         Alumni         @relation(fields: [alumniId], references: [id], onDelete: Cascade)
@@ -127,6 +140,7 @@ model PekerjaanAlumni {
   tahunMulai      Int      @map("tahun_mulai")
   gajiPertama     Float?   @map("gaji_pertama")
   kesesuaianBidang String  @map("kesesuaian_bidang") // Sesuai / Tidak Sesuai
+  lokasiKerja     String  @default("Dalam Negeri") @map("lokasi_kerja") // Dalam Negeri / Luar Negeri
   waktuTunggu     Int      @map("waktu_tunggu") // waktu tunggu dalam bulan
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")

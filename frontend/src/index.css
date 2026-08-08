@@ -25,7 +25,19 @@
 @layer components {
   /* Sidebar */
   .sidebar {
-    @apply fixed left-0 top-0 h-screen w-72 bg-slate-900 z-40 flex flex-col overflow-y-auto overflow-x-hidden transition-transform duration-300;
+    @apply fixed left-0 top-0 h-screen w-72 z-40 flex flex-col overflow-y-auto overflow-x-hidden transition-transform duration-300;
+  }
+
+  .sidebar-admin {
+    @apply bg-linear-to-b from-[#1e3a8a] via-[#2563eb] to-[#1e40af] border-r border-white/10;
+  }
+
+  .sidebar-alumni {
+    @apply bg-linear-to-b from-[#1e3a8a] via-[#0284c7] to-[#1d4ed8] border-r border-white/10;
+  }
+
+  .sidebar-admin-prodi {
+    @apply bg-linear-to-b from-[#064e3b] via-[#059669] to-[#047857] border-r border-white/10;
   }
 
   @media (max-width: 1024px) {
@@ -38,19 +50,27 @@
   }
 
   .sidebar-logo {
-    @apply px-6 py-5 border-b border-slate-700;
+    @apply px-6 py-5 border-b border-white/10;
   }
 
   .sidebar-nav-item {
-    @apply flex items-center gap-3 px-4 py-2.5 rounded-lg mx-3 my-0.5 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-all duration-200 cursor-pointer;
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-lg mx-3 my-0.5 text-sm font-medium text-blue-100/70 hover:bg-white/10 hover:text-white transition-all duration-200 cursor-pointer;
   }
 
-  .sidebar-nav-item.active {
-    @apply bg-blue-600 text-white shadow-lg shadow-blue-600/25;
+  .sidebar-admin .sidebar-nav-item.active {
+    @apply bg-white text-blue-900 shadow-md shadow-blue-950/20 font-semibold;
+  }
+
+  .sidebar-alumni .sidebar-nav-item.active {
+    @apply bg-white text-blue-950 shadow-md shadow-blue-950/20 font-semibold;
+  }
+
+  .sidebar-admin-prodi .sidebar-nav-item.active {
+    @apply bg-white text-emerald-900 shadow-md shadow-emerald-950/20 font-semibold;
   }
 
   .sidebar-section-label {
-    @apply px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500 mt-4;
+    @apply px-4 py-2 text-xs font-semibold uppercase tracking-wider text-blue-200/60 mt-4;
   }
 
   /* Cards */
