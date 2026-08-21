@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { checkEligibility, getActiveQuestions, submitResponse } from "../../services/tracerService";
-import { ClipboardCheck, Briefcase, Save, AlertCircle, CheckCircle2, Layers, CheckCircle } from "lucide-react";
+import { ClipboardCheck, Save, AlertCircle, CheckCircle2, Layers, CheckCircle } from "lucide-react";
 import { toast } from "react-toastify";
 
 export default function TracerPage() {
@@ -15,18 +15,6 @@ export default function TracerPage() {
 
   // States untuk form pengisian
   const [answers, setAnswers] = useState({}); // format: { [questionId]: "jawaban" }
-  const [isEmployed, setIsEmployed] = useState(false);
-  const [job, setJob] = useState({
-    namaPerusahaan: "",
-    jabatan: "",
-    bidangPekerjaan: "",
-    statusPekerjaan: "Tetap",
-    tahunMulai: new Date().getFullYear(),
-    gajiPertama: "",
-    kesesuaianBidang: "Sesuai",
-    lokasiKerja: "Dalam Negeri",
-    waktuTunggu: "",
-  });
 
   const loadTracerData = async () => {
     setIsLoading(true);
@@ -82,20 +70,6 @@ export default function TracerPage() {
 
   const handleAnswerChange = (qId, val) => {
     setAnswers({ ...answers, [qId]: val });
-    
-    // Auto-detect jika menjawab "Ya" / Bekerja
-    const qText = questions.find(q => q.id === qId)?.pertanyaan.toLowerCase();
-    if (qText && (qText.includes("bekerja") || qText.includes("pekerjaan") || qText.includes("status keberkerjaan"))) {
-      if (val.toLowerCase().includes("bekerja") || val.toLowerCase().startsWith("ya")) {
-        setIsEmployed(true);
-      } else if (val.toLowerCase().includes("tidak") || val.toLowerCase().includes("belum")) {
-        setIsEmployed(false);
-      }
-    }
-  };
-
-  const handleJobChange = (e) => {
-    setJob({ ...job, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
@@ -108,14 +82,6 @@ export default function TracerPage() {
       return;
     }
 
-    // Validasi form pekerjaan jika dicentang sudah bekerja
-    if (isEmployed) {
-      if (!job.namaPerusahaan.trim() || !job.jabatan.trim() || !job.bidangPekerjaan.trim() || !job.waktuTunggu) {
-        toast.error("Silakan lengkapi informasi pekerjaan Anda.");
-        return;
-      }
-    }
-
     setIsSubmitting(true);
     try {
       const formattedAnswers = Object.entries(answers).map(([qId, val]) => ({
@@ -126,11 +92,6 @@ export default function TracerPage() {
       const payload = {
         category: activeCategory,
         answers: formattedAnswers,
-        job: isEmployed ? {
-          ...job,
-          gajiPertama: job.gajiPertama ? parseFloat(job.gajiPertama) : null,
-          waktuTunggu: parseInt(job.waktuTunggu) || 0,
-        } : null,
       };
 
       const res = await submitResponse(payload);
@@ -357,174 +318,6 @@ export default function TracerPage() {
               </div>
             </div>
           ))}
-
-          {/* Pekerjaan Card */}
-          <div className="card shadow-md border border-slate-100 p-6">
-            <div className="flex items-center justify-between border-b pb-3 mb-6">
-              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <Briefcase size={20} className="text-teal-600" />
-                <span>Informasi Pekerjaan Alumni</span>
-              </h2>
-              
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={isEmployed}
-                  onChange={(e) => setIsEmployed(e.target.checked)}
-                  className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500"
-                />
-                <span className="text-sm font-bold text-teal-700">Saya Sudah Bekerja</span>
-              </label>
-            </div>
-
-            {isEmployed ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="form-label">Nama Perusahaan <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      name="namaPerusahaan"
-                      value={job.namaPerusahaan}
-                      onChange={handleJobChange}
-                      placeholder="Contoh: PT Teknologi Indonesia"
-                      className="form-input text-sm"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="form-label">Jabatan / Posisi <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      name="jabatan"
-                      value={job.jabatan}
-                      onChange={handleJobChange}
-                      placeholder="Contoh: Software Engineer"
-                      className="form-input text-sm"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="form-label">Bidang Pekerjaan <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      name="bidangPekerjaan"
-                      value={job.bidangPekerjaan}
-                      onChange={handleJobChange}
-                      placeholder="Contoh: IT / Rekayasa Perangkat Lunak"
-                      className="form-input text-sm"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="form-label">Status Pekerjaan</label>
-                    <select
-                      name="statusPekerjaan"
-                      value={job.statusPekerjaan}
-                      onChange={handleJobChange}
-                      className="form-input text-sm"
-                    >
-                      <option value="Tetap">Karyawan Tetap</option>
-                      <option value="Kontrak">Kontrak / Outsourcing</option>
-                      <option value="Freelance">Lepas / Freelance</option>
-                      <option value="Wiraswasta">Wiraswasta / Bisnis</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="form-label">Tahun Mulai Bekerja <span className="text-red-500">*</span></label>
-                    <input
-                      type="number"
-                      name="tahunMulai"
-                      value={job.tahunMulai}
-                      onChange={handleJobChange}
-                      className="form-input text-sm"
-                      min="2000"
-                      max={new Date().getFullYear()}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="form-label">Gaji Pertama (Opsional)</label>
-                    <input
-                      type="number"
-                      name="gajiPertama"
-                      value={job.gajiPertama}
-                      onChange={handleJobChange}
-                      placeholder="Contoh: 5000000"
-                      className="form-input text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="form-label">Waktu Tunggu (Bulan) <span className="text-red-500">*</span></label>
-                    <input
-                      type="number"
-                      name="waktuTunggu"
-                      value={job.waktuTunggu}
-                      onChange={handleJobChange}
-                      placeholder="Waktu tunggu kerja (bulan)"
-                      className="form-input text-sm"
-                      min="0"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="form-label">Kesesuaian dengan Bidang Studi</label>
-                  <select
-                    name="kesesuaianBidang"
-                    value={job.kesesuaianBidang}
-                    onChange={handleJobChange}
-                    className="form-input text-sm"
-                  >
-                    <option value="Sesuai">Sesuai dengan Bidang Studi (Linear)</option>
-                    <option value="Tidak Sesuai">Tidak Sesuai dengan Bidang Studi (Non-Linear)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="form-label">Lokasi Kerja <span className="text-red-500">*</span></label>
-                  <div className="flex flex-col sm:flex-row gap-4 mt-2">
-                    <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 font-medium">
-                      <input
-                        type="radio"
-                        name="lokasiKerja"
-                        value="Dalam Negeri"
-                        checked={job.lokasiKerja === "Dalam Negeri"}
-                        onChange={handleJobChange}
-                        className="w-4 h-4 text-teal-600 focus:ring-teal-500"
-                        required
-                      />
-                      <span>Dalam Negeri</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 font-medium">
-                      <input
-                        type="radio"
-                        name="lokasiKerja"
-                        value="Luar Negeri"
-                        checked={job.lokasiKerja === "Luar Negeri"}
-                        onChange={handleJobChange}
-                        className="w-4 h-4 text-teal-600 focus:ring-teal-500"
-                      />
-                      <span>Luar Negeri</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p className="text-slate-500 text-sm italic py-4 text-center">
-                Centang "Saya Sudah Bekerja" di kanan atas jika Anda sudah berstatus bekerja saat ini.
-              </p>
-            )}
-          </div>
 
           {/* Submit Actions */}
           <div className="flex gap-4">

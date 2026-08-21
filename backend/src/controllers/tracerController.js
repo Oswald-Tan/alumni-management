@@ -673,9 +673,287 @@ const getAccreditationReport = async (req, res) => {
 // 6. EXPORT LAPORAN TRACER (EXCEL & PDF)
 // ==========================================
 
+const buildTracerWorksheet = async (workbook, { category, targetPeriod, targetJurusan, targetJurusanId }) => {
+  const sheetName = category === "DIKTI" ? "Tracer Study DIKTI" : "Tracer Study IKU";
+  const worksheet = workbook.addWorksheet(sheetName, {
+    views: [{ showGridLines: true }],
+  });
+
+  // 1. Ambil pertanyaan untuk kategori ini
+  const questionWhere = {
+    category,
+    isActive: true,
+    tipe: { not: "label" }, // Pertanyaan kuis aktual
+  };
+  if (targetJurusanId) {
+    questionWhere.OR = [{ jurusanId: null }, { jurusanId: targetJurusanId }];
+  }
+
+  const questions = await prisma.tracerQuestion.findMany({
+    where: questionWhere,
+    include: { jurusan: true },
+    orderBy: [{ section: "asc" }, { urutan: "asc" }, { id: "asc" }],
+  });
+
+  // 2. Ambil respons tracer untuk kategori ini
+  const responseWhere = {
+    category,
+  };
+  if (targetPeriod) {
+    responseWhere.tracerPeriodId = targetPeriod.id;
+  }
+  if (targetJurusanId) {
+    responseWhere.alumni = { jurusanId: targetJurusanId };
+  }
+
+  const responses = await prisma.tracerResponse.findMany({
+    where: responseWhere,
+    include: {
+      alumni: {
+        include: { jurusan: true },
+      },
+      answers: true,
+      period: true,
+    },
+    orderBy: { submittedAt: "asc" },
+  });
+
+  // 3. Header Kolom (Baris 1) sesuai format kuesioner response Google Form (tanpa warna latar, tanpa NIM)
+  const headers = [
+    "Timestamp",
+    "Email Address",
+    "Nama Alumni",
+    "Program Studi",
+    ...questions.map((q) => q.pertanyaan),
+  ];
+
+  const headerRow = worksheet.getRow(1);
+  headerRow.values = headers;
+  headerRow.height = 32;
+
+  const thinBorder = {
+    top: { style: "thin", color: { argb: "FFCBD5E1" } },
+    bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
+    left: { style: "thin", color: { argb: "FFCBD5E1" } },
+    right: { style: "thin", color: { argb: "FFCBD5E1" } },
+  };
+
+  headerRow.eachCell((cell) => {
+    cell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FF000000" } };
+    cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+    cell.border = thinBorder;
+  });
+
+  // Set widths
+  worksheet.getColumn(1).width = 22; // Timestamp
+  worksheet.getColumn(2).width = 28; // Email Address
+  worksheet.getColumn(3).width = 28; // Nama Alumni
+  worksheet.getColumn(4).width = 28; // Program Studi
+
+  questions.forEach((q, idx) => {
+    worksheet.getColumn(5 + idx).width = 35; // Kolom pertanyaan
+  });
+
+  // 4. Menulis Baris Data Responden (Mulai Baris 2)
+  responses.forEach((resp, rIdx) => {
+    const rowNum = 2 + rIdx;
+    const ansMap = new Map();
+    (resp.answers || []).forEach((a) => ansMap.set(a.questionId, a.jawaban));
+
+    const row = worksheet.getRow(rowNum);
+
+    const timestampVal = resp.submittedAt
+      ? new Date(resp.submittedAt).toLocaleString("id-ID", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })
+      : "-";
+
+    const emailVal = resp.alumni?.email || "-";
+    const namaVal = resp.alumni?.nama || "-";
+    const prodiVal = resp.alumni?.jurusan
+      ? `${resp.alumni.jurusan.namaJurusan} / ${resp.alumni.jurusan.namaProdi}`
+      : "-";
+
+    const questionAnswers = questions.map((q) => {
+      const val = ansMap.get(q.id);
+      return val !== undefined && val !== null && val !== "" ? val : "-";
+    });
+
+    row.values = [timestampVal, emailVal, namaVal, prodiVal, ...questionAnswers];
+    row.height = 24;
+
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      cell.font = { name: "Arial", size: 9 };
+      cell.border = thinBorder;
+      if (colNumber === 1 || colNumber === 2) {
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+      } else if (colNumber === 3 || colNumber === 4) {
+        cell.alignment = { horizontal: "left", vertical: "middle" };
+      } else {
+        cell.alignment = { horizontal: "left", vertical: "middle", wrapText: true };
+      }
+    });
+  });
+};
+
+const buildCombinedTracerWorksheet = async (workbook, { targetPeriod, targetJurusan, targetJurusanId }) => {
+  const sheetTitle = "Tracer Study (Gabungan)";
+  const worksheet = workbook.addWorksheet(sheetTitle, {
+    views: [{ showGridLines: true }],
+  });
+
+  // 1. Ambil seluruh pertanyaan aktif DIKTI dan IKU
+  const [diktiQuestions, ikuQuestions] = await Promise.all([
+    prisma.tracerQuestion.findMany({
+      where: {
+        category: "DIKTI",
+        isActive: true,
+        ...(targetJurusanId ? { OR: [{ jurusanId: null }, { jurusanId: targetJurusanId }] } : {}),
+      },
+      include: { jurusan: true },
+      orderBy: [{ section: "asc" }, { urutan: "asc" }, { id: "asc" }],
+    }),
+    prisma.tracerQuestion.findMany({
+      where: {
+        category: "IKU",
+        isActive: true,
+        ...(targetJurusanId ? { OR: [{ jurusanId: null }, { jurusanId: targetJurusanId }] } : {}),
+      },
+      include: { jurusan: true },
+      orderBy: [{ section: "asc" }, { urutan: "asc" }, { id: "asc" }],
+    }),
+  ]);
+
+  const allQuestions = [...diktiQuestions, ...ikuQuestions];
+
+  // 2. Ambil respons tracer
+  const responseWhere = {};
+  if (targetPeriod) {
+    responseWhere.tracerPeriodId = targetPeriod.id;
+  }
+  if (targetJurusanId) {
+    responseWhere.alumni = { jurusanId: targetJurusanId };
+  }
+
+  const responses = await prisma.tracerResponse.findMany({
+    where: responseWhere,
+    include: {
+      alumni: {
+        include: { jurusan: true },
+      },
+      answers: true,
+      period: true,
+    },
+    orderBy: { submittedAt: "asc" },
+  });
+
+  // Gabungkan respons per alumni
+  const alumniMap = new Map();
+  for (const resp of responses) {
+    if (!alumniMap.has(resp.alumniId)) {
+      alumniMap.set(resp.alumniId, {
+        alumni: resp.alumni,
+        submittedAt: resp.submittedAt,
+        answers: new Map(),
+      });
+    }
+    const entry = alumniMap.get(resp.alumniId);
+    if (new Date(resp.submittedAt) > new Date(entry.submittedAt)) {
+      entry.submittedAt = resp.submittedAt;
+    }
+    (resp.answers || []).forEach((a) => entry.answers.set(a.questionId, a.jawaban));
+  }
+
+  // 3. Header Kolom (Baris 1)
+  const headers = [
+    "Timestamp",
+    "Email Address",
+    "Nama Alumni",
+    "Program Studi",
+    ...allQuestions.map((q) => q.pertanyaan),
+  ];
+
+  const headerRow = worksheet.getRow(1);
+  headerRow.values = headers;
+  headerRow.height = 32;
+
+  const thinBorder = {
+    top: { style: "thin", color: { argb: "FFCBD5E1" } },
+    bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
+    left: { style: "thin", color: { argb: "FFCBD5E1" } },
+    right: { style: "thin", color: { argb: "FFCBD5E1" } },
+  };
+
+  headerRow.eachCell((cell) => {
+    cell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FF000000" } };
+    cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+    cell.border = thinBorder;
+  });
+
+  // Set widths
+  worksheet.getColumn(1).width = 22; // Timestamp
+  worksheet.getColumn(2).width = 28; // Email Address
+  worksheet.getColumn(3).width = 28; // Nama Alumni
+  worksheet.getColumn(4).width = 28; // Program Studi
+
+  allQuestions.forEach((q, idx) => {
+    worksheet.getColumn(5 + idx).width = 35; // Kolom pertanyaan
+  });
+
+  // 4. Baris data
+  let rowNum = 2;
+  for (const entry of alumniMap.values()) {
+    const row = worksheet.getRow(rowNum);
+
+    const timestampVal = entry.submittedAt
+      ? new Date(entry.submittedAt).toLocaleString("id-ID", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })
+      : "-";
+
+    const emailVal = entry.alumni?.email || "-";
+    const namaVal = entry.alumni?.nama || "-";
+    const prodiVal = entry.alumni?.jurusan
+      ? `${entry.alumni.jurusan.namaJurusan} / ${entry.alumni.jurusan.namaProdi}`
+      : "-";
+
+    const questionAnswers = allQuestions.map((q) => {
+      const val = entry.answers.get(q.id);
+      return val !== undefined && val !== null && val !== "" ? val : "-";
+    });
+
+    row.values = [timestampVal, emailVal, namaVal, prodiVal, ...questionAnswers];
+    row.height = 24;
+
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      cell.font = { name: "Arial", size: 9 };
+      cell.border = thinBorder;
+      if (colNumber === 1 || colNumber === 2) {
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+      } else if (colNumber === 3 || colNumber === 4) {
+        cell.alignment = { horizontal: "left", vertical: "middle" };
+      } else {
+        cell.alignment = { horizontal: "left", vertical: "middle", wrapText: true };
+      }
+    });
+
+    rowNum++;
+  }
+};
+
 const exportTracerExcel = async (req, res) => {
   try {
-    const { jurusanId, periodId } = req.query;
+    const { jurusanId, periodId, category } = req.query;
 
     let targetPeriod = null;
     if (periodId && !isNaN(parseInt(periodId))) {
@@ -684,121 +962,52 @@ const exportTracerExcel = async (req, res) => {
       targetPeriod = await prisma.tracerPeriod.findFirst({ where: { status: "Aktif" } });
     }
 
-    const where = {};
+    let targetJurusanId = null;
     if (req.session.role === "ADMIN_PRODI" && req.session.jurusanId) {
-      where.jurusanId = req.session.jurusanId;
-    } else if (jurusanId) {
-      where.jurusanId = parseInt(jurusanId);
+      targetJurusanId = req.session.jurusanId;
+    } else if (jurusanId && !isNaN(parseInt(jurusanId))) {
+      targetJurusanId = parseInt(jurusanId);
     }
 
-    // Ambil data alumni beserta jawaban tracer dan pekerjaan
-    const alumniList = await prisma.alumni.findMany({
-      where,
-      include: {
-        jurusan: true,
-        pekerjaanAlumni: true,
-        tracerResponses: targetPeriod ? {
-          where: { tracerPeriodId: targetPeriod.id },
-          include: {
-            answers: {
-              include: { question: true },
-            },
-          },
-        } : false,
-      },
-      orderBy: { nama: "asc" },
-    });
+    const targetJurusan = targetJurusanId
+      ? await prisma.jurusan.findUnique({ where: { id: targetJurusanId } })
+      : null;
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Tracer Study");
+    workbook.creator = "Alumni Management Polimdo";
+    workbook.created = new Date();
 
-    // Header dan Judul
-    worksheet.mergeCells("A1:K1");
-    const title = worksheet.getCell("A1");
-    title.value = "LAPORAN TRACER STUDY ALUMNI POLIMDO";
-    title.font = { name: "Arial", size: 16, bold: true };
-    title.alignment = { horizontal: "center", vertical: "middle" };
+    const normalizedCategory = category ? category.toUpperCase() : "ALL";
 
-    worksheet.mergeCells("A2:K2");
-    const subtitle = worksheet.getCell("A2");
-    subtitle.value = `Periode: ${targetPeriod ? targetPeriod.namaPeriode : "Semua Periode"}`;
-    subtitle.font = { name: "Arial", size: 11, italic: true };
-    subtitle.alignment = { horizontal: "center", vertical: "middle" };
-
-    worksheet.addRow([]); // Row 3 blank
-
-    // Columns definition
-    const columns = [
-      { header: "No", key: "no", width: 6 },
-      { header: "Nama Alumni", key: "nama", width: 25 },
-      { header: "NIM", key: "nim", width: 16 },
-      { header: "Jurusan / Prodi", key: "prodi", width: 30 },
-      { header: "Status Pengisian", key: "status", width: 18 },
-      { header: "Perusahaan Tempat Bekerja", key: "perusahaan", width: 25 },
-      { header: "Jabatan", key: "jabatan", width: 20 },
-      { header: "Status Kerja", key: "statusKerja", width: 15 },
-      { header: "Tahun Mulai", key: "tahunMulai", width: 12 },
-      { header: "Waktu Tunggu (Bulan)", key: "waktuTunggu", width: 18 },
-      { header: "Kesesuaian Bidang", key: "kesesuaian", width: 18 },
-    ];
-    worksheet.columns = columns;
-
-    // Header styling
-    const headerRow = worksheet.getRow(4);
-    headerRow.values = columns.map(c => c.header);
-    headerRow.height = 24;
-    headerRow.eachCell((cell) => {
-      cell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
-      cell.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FF0F766E" }, // Teal theme
-      };
-      cell.alignment = { horizontal: "center", vertical: "middle" };
-    });
-
-    // Menulis data
-    alumniList.forEach((a, idx) => {
-      const response = a.tracerResponses && a.tracerResponses[0];
-      const statusPengisian = response ? "Sudah Mengisi" : "Belum Mengisi";
-      const job = a.pekerjaanAlumni && a.pekerjaanAlumni[0];
-
-      const row = worksheet.addRow({
-        no: idx + 1,
-        nama: a.nama,
-        nim: a.nim,
-        prodi: a.jurusan ? `${a.jurusan.namaJurusan} / ${a.jurusan.namaProdi}` : "-",
-        status: statusPengisian,
-        perusahaan: job ? job.namaPerusahaan : "-",
-        jabatan: job ? job.jabatan : "-",
-        statusKerja: job ? job.statusPekerjaan : "-",
-        tahunMulai: job ? job.tahunMulai : "-",
-        waktuTunggu: job ? job.waktuTunggu : "-",
-        kesesuaian: job ? job.kesesuaianBidang : "-",
+    if (normalizedCategory === "DIKTI") {
+      await buildTracerWorksheet(workbook, {
+        category: "DIKTI",
+        targetPeriod,
+        targetJurusan,
+        targetJurusanId,
       });
-
-      row.height = 20;
-      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-        cell.font = { name: "Arial", size: 9 };
-        cell.border = {
-          top: { style: "thin", color: { argb: "FFCBD5E1" } },
-          bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
-          left: { style: "thin", color: { argb: "FFCBD5E1" } },
-          right: { style: "thin", color: { argb: "FFCBD5E1" } },
-        };
-        if ([1, 3, 5, 8, 9, 10, 11].includes(colNumber)) {
-          cell.alignment = { horizontal: "center", vertical: "middle" };
-        } else {
-          cell.alignment = { horizontal: "left", vertical: "middle" };
-        }
-        if (colNumber === 3) {
-          cell.numFmt = "@";
-        }
+    } else if (normalizedCategory === "IKU") {
+      await buildTracerWorksheet(workbook, {
+        category: "IKU",
+        targetPeriod,
+        targetJurusan,
+        targetJurusanId,
       });
-    });
+    } else {
+      // Gabungan DIKTI & IKU (ALL)
+      await buildCombinedTracerWorksheet(workbook, {
+        targetPeriod,
+        targetJurusan,
+        targetJurusanId,
+      });
+    }
+
+    const cleanPeriodName = targetPeriod ? targetPeriod.namaPeriode.replace(/[^a-zA-Z0-9_-]/g, "_") : "Semua_Periode";
+    const categoryTag = normalizedCategory ? `_${normalizedCategory}` : "_GABUNGAN";
+    const fileName = `Laporan_Jawaban_Tracer${categoryTag}_${cleanPeriodName}_${new Date().getFullYear()}.xlsx`;
 
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    res.setHeader("Content-Disposition", `attachment; filename=laporan_tracer_${new Date().getFullYear()}.xlsx`);
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
 
     await workbook.xlsx.write(res);
     return res.end();

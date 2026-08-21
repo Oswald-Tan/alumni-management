@@ -21,4 +21,4 @@ export const submitResponse = (data) => api.post("/tracer/responses", data);
 export const getMonitoring = (params) => api.get("/tracer/monitoring", { params });
 export const getAlumniResponseDetail = (alumniId, params) => api.get(`/tracer/responses/alumni/${alumniId}`, { params });
 export const getReport = (params) => api.get("/tracer/report", { params });
-export const exportTracerExcel = () => api.get("/tracer/export/excel", { responseType: "blob" });
+export const exportTracerExcel = (params) => api.get("/tracer/export/excel", { params, responseType: "blob" });

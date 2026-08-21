@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Aug 08, 2026 at 04:12 AM
+-- Generation Time: Aug 21, 2026 at 07:50 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.3.30
 
@@ -31,6 +31,7 @@ CREATE TABLE `alumni` (
   `id` int NOT NULL,
   `nama` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
   `nim` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `jurusan_id` int NOT NULL,
   `tanggal_wisuda` datetime(3) DEFAULT NULL,
@@ -103,6 +104,14 @@ CREATE TABLE `sessions` (
   `expires` int UNSIGNED NOT NULL,
   `data` mediumtext COLLATE utf8mb4_unicode_ci
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `sessions`
+--
+
+INSERT INTO `sessions` (`session_id`, `expires`, `data`) VALUES
+('LVtBJAnJPmEOhwyPmAVoTpVw1Svihda6', 1787159436, '{\"cookie\":{\"originalMaxAge\":86400000,\"expires\":\"2026-08-19T16:57:52.488Z\",\"secure\":false,\"httpOnly\":true,\"path\":\"/\",\"sameSite\":\"lax\"},\"userId\":7,\"role\":\"ALUMNI\",\"name\":\"Agung\",\"foto\":null,\"nim\":\"20024037\"}'),
+('rSytS-6uvE15HpTDRHEp61iNYZ6nUryU', 1787159766, '{\"cookie\":{\"originalMaxAge\":86400000,\"expires\":\"2026-08-19T15:53:23.983Z\",\"secure\":false,\"httpOnly\":true,\"path\":\"/\",\"sameSite\":\"lax\"},\"userId\":1,\"role\":\"ADMIN\",\"name\":\"Admin Akademik\",\"foto\":null,\"email\":\"admin@polimdo.ac.id\"}');
 
 -- --------------------------------------------------------
 
@@ -349,7 +358,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `alumni`
 --
 ALTER TABLE `alumni`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `jurusan`
@@ -367,7 +376,7 @@ ALTER TABLE `pekerjaan_alumni`
 -- AUTO_INCREMENT for table `tracer_answers`
 --
 ALTER TABLE `tracer_answers`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=84;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=204;
 
 --
 -- AUTO_INCREMENT for table `tracer_periods`
@@ -385,13 +394,13 @@ ALTER TABLE `tracer_questions`
 -- AUTO_INCREMENT for table `tracer_responses`
 --
 ALTER TABLE `tracer_responses`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Constraints for dumped tables

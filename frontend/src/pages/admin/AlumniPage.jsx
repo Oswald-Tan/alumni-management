@@ -255,6 +255,11 @@ export default function AlumniPage() {
                 </div>
               </div>
 
+              <div>
+                <p className="text-xs text-slate-400 font-semibold uppercase">Email Alumni</p>
+                <p className="text-sm font-medium text-slate-800">{selectedAlumni.email || "-"}</p>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-slate-400 font-semibold uppercase">Jurusan / Program Studi</p>

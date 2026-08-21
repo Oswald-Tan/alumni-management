@@ -46,6 +46,7 @@ model Alumni {
   id                       Int               @id @default(autoincrement())
   nama                     String
   nim                      String            @unique
+  email                    String?           @db.VarChar(255)
   password                 String            @db.VarChar(255)
   jurusanId                Int               @map("jurusan_id")
   foto                     String?           @db.VarChar(255)

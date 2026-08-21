@@ -46,6 +46,7 @@ const getAll = async (req, res) => {
       where.OR = [
         { nama: { contains: search } },
         { nim: { contains: search } },
+        { email: { contains: search } },
         { nomorIjazah: { contains: search } },
       ];
     }
@@ -141,7 +142,7 @@ const getById = async (req, res) => {
 // POST /api/v1/alumni
 const create = async (req, res) => {
   try {
-    const { nim, nama, jurusanId, tanggalWisuda, tanggalKelulusan, nomorIjazah, tanggalPengambilanIjazah, password } = req.body;
+    const { nim, nama, email, jurusanId, tanggalWisuda, tanggalKelulusan, nomorIjazah, tanggalPengambilanIjazah, password } = req.body;
 
     let targetJurusanId = jurusanId;
     if (req.session.role === "ADMIN_PRODI" && req.session.jurusanId) {
@@ -166,6 +167,7 @@ const create = async (req, res) => {
       data: {
         nim,
         nama,
+        email: email && email.trim() !== "" ? email.trim() : null,
         password: hashedPassword,
         jurusanId: parseInt(targetJurusanId),
         tanggalWisuda: tanggalWisuda ? new Date(tanggalWisuda) : null,
@@ -194,7 +196,7 @@ const create = async (req, res) => {
 const update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nim, nama, jurusanId, tanggalWisuda, tanggalKelulusan, nomorIjazah, tanggalPengambilanIjazah, password } = req.body;
+    const { nim, nama, email, jurusanId, tanggalWisuda, tanggalKelulusan, nomorIjazah, tanggalPengambilanIjazah, password } = req.body;
 
     const alumni = await prisma.alumni.findUnique({ where: { id: parseInt(id) } });
     if (!alumni) {
@@ -205,9 +207,16 @@ const update = async (req, res) => {
     const updateData = {};
 
     if (isAlumni) {
+      let hasChange = false;
       if (password && password.trim() !== "") {
         updateData.password = await bcrypt.hash(password, 10);
-      } else {
+        hasChange = true;
+      }
+      if (email !== undefined) {
+        updateData.email = email && email.trim() !== "" ? email.trim() : null;
+        hasChange = true;
+      }
+      if (!hasChange) {
         return res.status(400).json({ success: false, message: "Tidak ada data yang diubah" });
       }
     } else {
@@ -221,6 +230,9 @@ const update = async (req, res) => {
 
       updateData.nama = nama;
       updateData.nim = nim;
+      if (email !== undefined) {
+        updateData.email = email && email.trim() !== "" ? email.trim() : null;
+      }
       if (req.session.role === "ADMIN_PRODI") {
         updateData.jurusanId = req.session.jurusanId;
       } else {

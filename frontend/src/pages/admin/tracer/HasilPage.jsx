@@ -79,19 +79,33 @@ export default function HasilPage() {
     }
   };
 
-  const handleExportExcel = async () => {
+  const [exportingType, setExportingType] = useState(null);
+
+  const handleExportExcel = async (exportCategory) => {
+    setExportingType(exportCategory);
+    const catLabel = exportCategory === "ALL" ? "Gabungan (DIKTI & IKU)" : `Tracer ${exportCategory}`;
     try {
-      const response = await exportTracerExcel();
+      toast.info(`Menyiapkan data export ${catLabel}...`);
+      const response = await exportTracerExcel({
+        category: exportCategory,
+        periodId: filter.periodId,
+        jurusanId: filter.jurusanId,
+      });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `Laporan_Tracer_Study_${new Date().getFullYear()}.xlsx`);
+      const selectedPeriod = periods.find((p) => String(p.id) === String(filter.periodId));
+      const periodName = selectedPeriod ? selectedPeriod.namaPeriode.replace(/[^a-zA-Z0-9_-]/g, "_") : "Semua_Periode";
+      link.setAttribute("download", `Laporan_Jawaban_Tracer_${exportCategory}_${periodName}_${new Date().getFullYear()}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
-      toast.success("Berhasil mengekspor Laporan Excel");
+      window.URL.revokeObjectURL(url);
+      toast.success(`Berhasil mengekspor Laporan Jawaban ${catLabel}`);
     } catch {
-      toast.error("Gagal mengekspor Laporan Excel");
+      toast.error(`Gagal mengekspor Laporan Jawaban ${catLabel}`);
+    } finally {
+      setExportingType(null);
     }
   };
 
@@ -110,10 +124,37 @@ export default function HasilPage() {
           <h1 className="page-title">Monitoring Hasil Tracer Study</h1>
           <p className="page-subtitle">Pantau alumni yang sudah atau belum mengisi kuesioner Tracer DIKTI & IKU</p>
         </div>
-        <button onClick={handleExportExcel} className="btn-primary bg-emerald-600 hover:bg-emerald-700 shrink-0 self-start md:self-auto">
-          <Download size={16} />
-          <span>Export Excel</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-start md:self-auto">
+          <button
+            onClick={() => handleExportExcel("ALL")}
+            disabled={exportingType !== null}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Ekspor Seluruh Jawaban Kuesioner Tracer Study Gabungan (DIKTI & IKU) ke Excel"
+          >
+            <Download size={16} />
+            <span>{exportingType === "ALL" ? "Mengekspor..." : "Export All (Gabungan)"}</span>
+          </button>
+
+          <button
+            onClick={() => handleExportExcel("DIKTI")}
+            disabled={exportingType !== null}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Ekspor Seluruh Jawaban Kuesioner Tracer Study DIKTI ke Excel"
+          >
+            <Download size={16} />
+            <span>{exportingType === "DIKTI" ? "Mengekspor..." : "Export Tracer DIKTI"}</span>
+          </button>
+
+          <button
+            onClick={() => handleExportExcel("IKU")}
+            disabled={exportingType !== null}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Ekspor Seluruh Jawaban Kuesioner Tracer Study IKU ke Excel"
+          >
+            <Download size={16} />
+            <span>{exportingType === "IKU" ? "Mengekspor..." : "Export Tracer IKU"}</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Card */}

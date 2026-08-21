@@ -19,6 +19,7 @@ export default function AlumniEditPage() {
   const [form, setForm] = useState({
     nim: "",
     nama: "",
+    email: "",
     jurusanId: "",
     tanggalKelulusan: "",
     tanggalWisuda: "",
@@ -34,6 +35,7 @@ export default function AlumniEditPage() {
         setForm({
           nim: a.nim,
           nama: a.nama,
+          email: a.email || "",
           jurusanId: a.jurusanId,
           tanggalKelulusan: a.tanggalKelulusan?.split("T")[0] || "",
           tanggalWisuda: a.tanggalWisuda?.split("T")[0] || "",
@@ -95,7 +97,7 @@ export default function AlumniEditPage() {
 
       <div className="card max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="form-label">
                 NIM <span className="text-red-500">*</span>
@@ -122,6 +124,20 @@ export default function AlumniEditPage() {
                 required
               />
             </div>
+          </div>
+
+          <div>
+            <label className="form-label">
+              Email Alumni <span className="text-slate-400 font-normal text-xs">(Opsional)</span>
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="Contoh: ahmad.fauzan@email.com"
+              className="form-input"
+            />
           </div>
 
           <div>

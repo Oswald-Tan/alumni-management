@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { selectUser, setUser } from "../../features/auth/authSlice";
 import { getAlumniById, updateAlumni, updateAlumniFoto, deleteAlumniFoto } from "../../services/alumniService";
-import { User, Lock, Save, BookOpen } from "lucide-react";
+import { User, Lock, Save, BookOpen, Mail } from "lucide-react";
 import { toast } from "react-toastify";
 import ProfilePhotoUpload from "../../components/ProfilePhotoUpload";
 
@@ -12,6 +12,8 @@ export default function ProfilPage() {
   const [alumniDetail, setAlumniDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingEmail, setIsSavingEmail] = useState(false);
+  const [emailForm, setEmailForm] = useState("");
   const [passForm, setPassForm] = useState({
     newPassword: "",
     confirmPassword: "",
@@ -21,7 +23,9 @@ export default function ProfilPage() {
     if (!user?.id) return;
     getAlumniById(user.id)
       .then((res) => {
-        setAlumniDetail(res.data.data);
+        const data = res.data.data;
+        setAlumniDetail(data);
+        setEmailForm(data.email || "");
       })
       .catch(() => {
         toast.error("Gagal memuat profil alumni");
@@ -38,6 +42,20 @@ export default function ProfilPage() {
 
   const handlePassChange = (e) => {
     setPassForm({ ...passForm, [e.target.name]: e.target.value });
+  };
+
+  const handleUpdateEmail = async (e) => {
+    e.preventDefault();
+    setIsSavingEmail(true);
+    try {
+      await updateAlumni(user.id, { email: emailForm });
+      setAlumniDetail((prev) => ({ ...prev, email: emailForm }));
+      toast.success("Email berhasil diperbarui!");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Gagal memperbarui email");
+    } finally {
+      setIsSavingEmail(false);
+    }
   };
 
   const handleUpdatePassword = async (e) => {
@@ -83,8 +101,8 @@ export default function ProfilPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Profile Card Info */}
-        <div className="card shadow-md border border-slate-100 p-6 lg:col-span-2">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-6 pb-6 border-b border-slate-100">
+        <div className="card shadow-md border border-slate-100 p-6 lg:col-span-2 space-y-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-6 border-b border-slate-100">
             <ProfilePhotoUpload
               currentFoto={alumniDetail?.foto}
               onUploadSuccess={handleUploadSuccess}
@@ -129,6 +147,36 @@ export default function ProfilPage() {
                 <p className="text-xs text-slate-400 font-semibold uppercase">Akreditasi Prodi</p>
                 <span className="badge badge-purple mt-1 inline-block">{alumniDetail?.jurusan?.akreditasi || "-"}</span>
               </div>
+            </div>
+
+            {/* Email Field Update Form */}
+            <div className="pt-4 border-t border-slate-100">
+              <form onSubmit={handleUpdateEmail} className="space-y-2">
+                <label className="form-label flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <span className="font-semibold text-slate-700">Alamat Email</span>
+                  <span className="text-xs text-slate-400 font-normal">Digunakan untuk keperluan Tracer Study</span>
+                </label>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div className="relative flex-1">
+                    <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="email"
+                      value={emailForm}
+                      onChange={(e) => setEmailForm(e.target.value)}
+                      placeholder="Masukkan alamat email aktif (contoh: nama@email.com)"
+                      className="form-input text-sm pl-9"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSavingEmail}
+                    className="btn-primary py-2.5 px-4 text-sm font-semibold flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
+                  >
+                    <Save size={15} />
+                    <span>{isSavingEmail ? "Menyimpan..." : "Simpan Email"}</span>
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
